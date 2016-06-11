@@ -1,0 +1,247 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use Qiniu\Auth;
+use Qiniu\Storage\BucketManager;
+
+class FLController extends Controller
+{
+    public function __construct()
+    {
+        parent::__construct();
+    }
+
+    public function _get(Request $request, $type, $key, $section)
+    {
+        switch ($section) {
+            case "score":
+                if (in_array($type, ["file"]) === false) {
+                    $this->response->invalidPath();
+                    break;
+                }
+                $tableName = "score";
+                $result = app('db')
+                    ->table($tableName)
+                    ->select(app('db')->raw('SUM(score)'))
+                    ->where([
+                        ['key', $key]
+                    ])
+                    ->first();
+                if ($result === false) {
+                    $this->response->databaseErr();
+                } else {
+                    if ($result === NULL) $result = 0;
+                    else $result = $result->{'SUM(score)'};
+                    $this->response->setData(["total_score" => $result]);
+                    $this->response->success();
+                }
+                break;
+            case "comment":
+                if (in_array($type, ["file", "lesson"]) === false) {
+                    $this->response->invalidPath();
+                    break;
+                }
+                $tableName = "comment";
+                $result = app('db')->table($tableName)
+                    ->select('username', 'comment')
+                    ->where([
+                        ['key', $key]
+                    ])
+                    ->get();
+                if ($result === false) {
+                    $this->response->databaseErr();
+                } else {
+                    $this->response->setData(["comments" => $result]);
+                    $this->response->success();
+                }
+                break;
+            case "download":
+                if (in_array($type, ["file", "lesson"]) === false) {
+                    $this->response->invalidPath();
+                    break;
+                }
+                switch ($type) {
+                    case "file":
+                        if (!$request->has("path")
+                            || !$request->has("filename")
+                        ) {
+                            $this->response->paraErr();
+                        } else {
+                            $filename = $request->input("filename");
+                            $path = $request->input("path");
+                            $this->response->setData(["downloadLink" => env("QINIU_SPACE_DOMAIN") . $path . $filename . "?attname=$filename"]);
+                            $this->response->success();
+                        }
+                        break;
+                    case "lesson":
+                        if (!$request->has("token")) {
+                            $this->response->paraErr();
+                        }
+                        $token = $request->input("token");
+                        $stuId = $this->getIdFromToken($token);
+                        if ($stuId === NULL) {
+                            $this->response->invalidUser();
+                            break;
+                        }
+                        $lessonName = rawurldecode($key);
+                        if (!file_exists(env("ARCHIVE_ROOT") . $lessonName . ".zip")) {
+                            $this->response->fileNotExist();
+                            break;
+                        }
+                        if ($request->has("confirmed")) {
+                            return response()->download(env("ARCHIVE_ROOT") . $lessonName . ".zip",
+                                $lessonName . ".zip",
+                                [
+                                    "Content-type" => "application/octet-stream;"
+                                ]);
+                        }
+                        $query = http_build_query([
+                            "token" => $token,
+                            "confirmed" => "1"
+                        ]);
+                        $this->response->setData(["link" => $request->url() . "?" . $query]);
+                        $this->response->success();
+                        break;
+                    default:
+                        $this->response->invalidPath();
+                        break;
+                }
+                break;
+            default:
+                $this->response->invalidPath();
+        }
+        return response()->json($this->response);
+    }
+
+    public function _set(Request $request, $type, $key, $section)
+    {
+        $stuId = $this->getIdFromToken($request->input("token"));
+        \header("stuId:$stuId");
+        switch ($section) {
+            case "score":
+                if (in_array($type, ["file"]) === false) {
+                    $this->response->invalidPath();
+                    break;
+                }
+                if (!$request->has("score")) {
+                    $this->response->paraErr();
+                    break;
+                }
+                $score = $request->input("score") < 0 ? -2 : 1;
+                $tableName = "score";
+                $result = app('db')
+                    ->table($tableName)
+                    ->select('score')
+                    ->where([
+                        ['key', $key],
+                        ['stuId', $stuId]
+                    ])
+                    ->first();
+                if ($result === false) {
+                    $this->response->databaseErr();
+                    break;
+                } else {
+                    if ($result === NULL) {
+                        $result = app('db')
+                            ->table('score')
+                            ->insert([
+                                "stuId" => $stuId,
+                                "type" => $type,
+                                "key" => $key,
+                                "score" => $score,
+                                "created_at" => \Carbon\Carbon::now()
+                            ]);
+                        if ($result === false) {
+                            $this->response->databaseErr();
+                        } else {
+                            $this->response->success();
+                        }
+                    } else {
+                        $result = app('db')
+                            ->table('score')
+                            ->update([
+                                "score" => $score,
+                                "updated_at" => \Carbon\Carbon::now()
+                            ]);
+                        if ($result === false) {
+                            $this->response->databaseErr();
+                        } else {
+                            $this->response->success();
+                        }
+                    }
+                }
+                break;
+            case "comment":
+                if (in_array($type, ["file", "lesson"]) === false) {
+                    $this->response->invalidPath();
+                    break;
+                }
+                if (!$request->has("comment")
+                    || !$request->has("username")
+                ) {
+                    $this->response->paraErr();
+                    $this->response->appendMsg("comment,username");
+                    break;
+                }
+                $comment = $request->input("comment");
+                $username = $request->input("username");
+                if ($this->lengthOverflow($comment, env("MAX_COMMENT_LENGTH"))
+                    || $this->lengthOverflow($username, env("MAX_USERNAME_LENGTH"))
+                ) {
+                    $this->response->paraErr();
+                    $this->response->appendMsg("length");
+                    break;
+                }
+                $tableName = "comment";
+                $result = app('db')
+                    ->table($tableName)
+                    ->insert([
+                        "stuId" => $stuId,
+                        "comment" => $comment,
+                        "username" => $username,
+                        "type" => $type,
+                        "key" => $key,
+                        "created_at" => \Carbon\Carbon::now()
+                    ]);
+                if ($result === false) {
+                    $this->response->databaseErr();
+                    break;
+                }
+                $result = app('db')
+                    ->table('user')
+                    ->where('stuId', $stuId)
+                    ->update([
+                        "lastAlia" => $username
+                    ]);
+                if ($result === false) {
+                    $this->response->databaseErr();
+                    break;
+                }
+                $this->response->success();
+                break;
+            default:
+                $this->response->invalidPath();
+        }
+        return response()->json($this->response);
+    }
+
+    private function lengthOverflow($content, $limit)
+    {
+        if (is_string($content)) return $this->utf8StrLen($content) > $limit;
+        if (is_array($content)) {
+            foreach ($content as $text) {
+                if (!is_string($text) || $this->utf8StrLen($text) > $limit) return true;
+            }
+            return false;
+        }
+        return true;
+    }
+
+    private function utf8StrLen($string = NULL)
+    {
+        preg_match_all("/./us", $string, $match);
+        return count($match[0]);
+    }
+}
