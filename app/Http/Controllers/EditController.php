@@ -64,7 +64,7 @@ class EditController extends Controller
             }
             $edits["RENAME"] = $editsRenameArr;
 
-            $this->response->setData(["edits"=>$edits]);
+            $this->response->setData(["edits" => $edits]);
             $this->response->success();
         } while (false);
 
@@ -74,16 +74,12 @@ class EditController extends Controller
     public function set(Request $request)
     {
         do {
-            if (   !$request->has("original")
+            if (!$request->has("original")
                 || !$request->has("edit")
                 || !$request->has("type")
                 || !$request->has("token")
             ) {
                 $this->response->paraErr();
-                $this->response->appendMsg($request->has("original")?"true":"false");
-                $this->response->appendMsg($request->has("edit")?"true":"false");
-                $this->response->appendMsg($request->has("type")?"true":"false");
-                $this->response->appendMsg($request->has("token")?"true":"false");
                 break;
             }
             $original = $request->input("original");
@@ -92,7 +88,7 @@ class EditController extends Controller
             $token = $request->input("token");
             $stuId = $this->getIdFromToken($token);
 
-            if (!in_array($type, ["MOVE","RENAME", "TRASH"])){
+            if (!in_array($type, ["MOVE", "RENAME", "TRASH"])) {
                 $this->response->paraErr();
                 break;
             }
@@ -101,18 +97,11 @@ class EditController extends Controller
                 $this->response->paraErr();
                 break;
             }
-
-            // expected format: ONEPIECE/****课程/[***]+
+            // expected format: ****课程/[***]+
             if (!$this->matchPathFormat($original)
-                || (!$this->matchPathFormat($edit) && $edit != "-")
-            ) {
-                $this->response->paraErr();
+            || ($type == "MOVE" && !$this->matchPathFormat($edit))) {
+                $this->response->invalidPath();
                 break;
-            }
-
-            if ($type == "TRASH") {
-                $lessonName = explode("/", $original)[1];
-                $edit = str_replace("$lessonName/", "$lessonName/__ARCHIVE__/", $original);
             }
 
             // check saved operations
@@ -127,7 +116,6 @@ class EditController extends Controller
                 $this->response->databaseErr();
                 break;
             }
-
             if ($result === NULL) {
                 // no earlier record, just insert this one
                 $result = app('db')
@@ -140,16 +128,18 @@ class EditController extends Controller
                     ]);
             } else {
                 // earlier request found, try update
-                $result = app('db')
-                    ->table('edit')
-                    ->where([
-                        ["stuId", $stuId],
-                        ["original", $original]
-                    ])
-                    ->update([
-                        "edit" => $edit,
-                        "type" => $type
-                    ]);
+                if ($result->edit != $edit) {
+                    $result = app('db')
+                        ->table('edit')
+                        ->where([
+                            ["stuId", $stuId],
+                            ["original", $original]
+                        ])
+                        ->update([
+                            "edit" => $edit,
+                            "type" => $type
+                        ]);
+                }
             }
             if ($result === false) {
                 $this->response->databaseErr();
@@ -168,10 +158,23 @@ class EditController extends Controller
                 $this->response->databaseErr();
                 break;
             }
-
-            $row = $result;
-            // if over limit
-            if ($row !== NULL && $row->{"COUNT(stuId)"} > env("EDIT_LIMIT")) {
+            // if admin's operation or requests over limit
+            if ($stuId == env("ADMIN_ID") || $result->{"COUNT(stuId)"} > env("EDIT_LIMIT")) {
+                switch ($type) {
+                    case "TRASH":
+                        $oldPrefix = $original;
+                        $lessonName = explode("/", $original)[1];
+                        $newPrefix = str_replace("$lessonName/", "$lessonName/__ARCHIVE__/", $original);
+                        break;
+                    case "MOVE":
+                        $oldPrefix = $this->popLastSection($original);
+                        $newPrefix = $edit;
+                        break;
+                    case "RENAME":
+                        $oldPrefix = $original;
+                        $newPrefix = $this->popLastSection($original) . "/" . $edit;
+                        break;
+                }
                 // replace files with prefix $original to $edit
                 $auth = new Auth(env("QINIU_AK"), env("QINIU_SK"));
                 $bucketManager = new BucketManager($auth);
@@ -184,14 +187,16 @@ class EditController extends Controller
                     $this->response->storageErr();
                     break;
                 }
-                $files = array_map(function ($cur) {
+                $filenames = array_map(function ($cur) {
                     return $cur["key"];
                 }, $iterms);
                 // rename them
-                foreach ($files as $file) {
-                    // $bucketManager->rename($BUCKET_NAME, $file, str_replace($original, $edit, $file));
-                    echo $file, "\n", str_replace($original, $edit, $file), "\n", "\n";
+                $this->response->success();
+                foreach ($filenames as $filename) {
+                    $bucketManager->rename(env("QINIU_BUCKET_NAME"), $filename, str_replace($oldPrefix, $newPrefix, $filename));
+                    $this->response->appendMsg(join(",", [$filename, str_replace($oldPrefix, $newPrefix, $filename)]));
                 }
+                return response()->json($this->response);
             }
             $this->response->success();
         } while (false);
@@ -212,5 +217,13 @@ class EditController extends Controller
             $i++;
         }
         return true;
+    }
+
+    function popLastSection ($path) {
+        return join("/", array_slice(explode("/", $path), 0, count(explode("/", $path)) - 1));
+    }
+
+    function shiftFirstSection ($path) {
+        return join("/", array_slice(explode("/", $path), 1));
     }
 }

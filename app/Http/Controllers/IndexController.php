@@ -75,9 +75,11 @@ class IndexController extends Controller
                 break;
             } else {
                 foreach ($iterms as $iterm) {
-                    $path = explode("/", $iterm["key"]);
+                    $key = $iterm["key"];
+                    $path = explode("/", $key);
                     $filename = array_pop($path);
 
+                    if (strpos($key, "__ARCHIVE__") !== false) continue;
                     if (count($path) == 0 && $filename == "index.html") continue;
                     if (strpos($filename, "申请-") === 0) continue;
                     if (count($path) > 0 && $path[0] === "_log") continue;
