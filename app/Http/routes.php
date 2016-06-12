@@ -12,7 +12,7 @@
 */
 
 $app->get('', function () use($app) {
-    return new \Symfony\Component\HttpFoundation\Response(file_get_contents("index.html"));
+    return new \Illuminate\Http\Response(file_get_contents("index.html"));
 });
 
 $app->get('test', [
@@ -56,7 +56,7 @@ $app->post('lesson/{lessonName}/{section}', [
 
 $app->get('uploadToken', [
     "as" => "uploadToken",
-    "middleware" => ["log:uploadToken-get"],
+    "middleware" => ["auth", "log:uploadToken-get"],
     "uses" => "UploadController@get"
 ]);
 

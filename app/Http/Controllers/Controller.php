@@ -103,4 +103,9 @@ class MyResponse
     {
         $this->msg = "文件不存在";
     }
+    
+    function fileExist()
+    {
+        $this->msg = "文件已存在";
+    }
 }
