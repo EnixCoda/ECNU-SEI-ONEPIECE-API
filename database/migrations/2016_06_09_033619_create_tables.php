@@ -16,6 +16,7 @@ class CreateTables extends Migration
         Schema::create('user', function (Blueprint $table) {
             $table->increments('id');
             $table->text('stuId');
+            $table->text('username');
             $table->text('password');
             $table->text('cademy');
             $table->text('token');

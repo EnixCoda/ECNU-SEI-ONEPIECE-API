@@ -15,10 +15,10 @@ class LoginController extends Controller
 
     public function main(Request $request)
     {
-        if ($request->has("id")
-            && $request->has("password")
-        ) {
-            do {
+        do {
+            if ($request->has("id")
+            &&  $request->has("password")
+            ) {
                 $stuId = $request->input("id");
                 $password = $request->input("password");
 
@@ -39,10 +39,9 @@ class LoginController extends Controller
                 $cademy = $data->data->cls;
                 $token = $this->genUserToken($stuId, $password);
 
-                //save to database
-                $result = app('db')->table('user')
-                    ->select(app('db')->raw('*'))
-                    ->where('stuId', '=', $stuId)
+                $result = app('db')
+                    ->table('user')
+                    ->where('stuId', $stuId)
                     ->first();
 
                 if (!$result) {
@@ -50,14 +49,16 @@ class LoginController extends Controller
                     $result = app('db')->table('user')
                         ->insert([
                             "stuId" => $stuId,
+                            "username" => $username,
                             "password" => $password,
                             "cademy" => $cademy,
                             "token" => $token,
                             "lastAlia" => $username,
                             "created_at" => \Carbon\Carbon::now()
                         ]);
-                    if (!$result) {
+                    if ($result === false) {
                         $this->response->databaseErr();
+                        break;
                     }
                 } else {
                     // 有记录
@@ -69,23 +70,56 @@ class LoginController extends Controller
                             "token" => $token,
                             "updated_at" => \Carbon\Carbon::now()
                         ]);
-                    if (!$result) {
+                    if ($result === false) {
                         $this->response->databaseErr();
+                        break;
                     }
                 }
-                
-                $this->response->setData([
-                    'username' => $username,
-                    'cademy' => $cademy,
-                    'token' => $token,
-                ]);
-                $this->response->success();
-            } while (false);
-        }
+            } else if ($request->has("token")) {
+                $token = $request->input("token");
+                $result = app('db')
+                    ->table('user')
+                    ->where('token', $token)
+                    ->first();
+                if ($result === false) {
+                    $this->response->databaseErr();
+                    break;
+                }
+                if ($result === NULL) {
+                    $this->response->loginAuthFail();
+                    break;
+                }
+                $stuId = $result->stuId;
+                $username = $result->username;
+                $cademy = $result->cademy;
+                $result = app('db')
+                    ->table('user')
+                    ->where("stuId", $stuId)
+                    ->update([
+                        "token" => $token,
+                        "updated_at" => \Carbon\Carbon::now()
+                    ]);
+                if ($result === false) {
+                    $this->response->databaseErr();
+                    break;
+                }
+            } else {
+                $this->response->paraErr();
+                break;
+            }
+
+            $this->response->setData([
+                'username' => $username,
+                'cademy' => $cademy,
+                'token' => $token,
+            ]);
+            $this->response->success();
+            $this->response->cusMsg("欢迎！" . $cademy . "的" . $username . "。");
+        } while (false);
 
         return response()->json($this->response);
     }
-    
+
     private function logInToECNU($id, $password)
     {
         $loginUrl = 'http://202.120.82.2:8081/ClientWeb/pro/ajax/login.aspx';
