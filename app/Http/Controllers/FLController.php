@@ -30,9 +30,8 @@ class FLController extends Controller
                 if ($result === false) {
                     $this->response->databaseErr();
                 } else {
-                    if ($result === NULL) $result = 0;
-                    else $result = $result->{'SUM(score)'};
-                    $this->response->setData(["total_score" => $result]);
+                    $score = $result->{'SUM(score)'} === NULL ? 0 : $result->{'SUM(score)'};
+                    $this->response->setData(["total_score" => $score]);
                     $this->response->success();
                 }
                 break;
