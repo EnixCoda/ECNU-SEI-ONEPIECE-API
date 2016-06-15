@@ -3,8 +3,6 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Qiniu\Auth;
-use Qiniu\Storage\BucketManager;
 
 class FLController extends Controller
 {
@@ -64,14 +62,26 @@ class FLController extends Controller
                 }
                 switch ($type) {
                     case "file":
-                        if (!$request->has("path")
-                            || !$request->has("filename")
-                        ) {
+                        if (!$request->has("fileId")) {
                             $this->response->paraErr();
+                            break;
                         } else {
-                            $filename = $request->input("filename");
-                            $path = $request->input("path");
-                            $this->response->setData(["downloadLink" => env("QINIU_SPACE_DOMAIN") . $path . $filename . "?attname=$filename"]);
+                            $fileId = $request->input("fileId");
+                            $result = app('db')
+                                ->table('file')
+                                ->where('fileId', $fileId)
+                                ->first();
+                            if ($result === false) {
+                                $this->response->databaseErr();
+                                break;
+                            }
+                            if ($result === NULL) {
+                                $this->response->fileNotExist();
+                                break;
+                            }
+                            $key = $result->key;
+                            $filename = array_pop(explode("/", $key));
+                            $this->response->setData(["downloadLink" => env("QINIU_SPACE_DOMAIN") . $key . "?attname=$filename"]);
                             $this->response->success();
                         }
                         break;

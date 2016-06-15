@@ -191,12 +191,13 @@ class EditController extends Controller
                     return $cur["key"];
                 }, $iterms);
                 // rename them
-                $this->response->success();
                 foreach ($filenames as $filename) {
                     $bucketManager->rename(env("QINIU_BUCKET_NAME"), $filename, str_replace($oldPrefix, $newPrefix, $filename));
-                    $this->response->appendMsg(join(",", [$filename, str_replace($oldPrefix, $newPrefix, $filename)]));
                 }
-                return response()->json($this->response);
+
+                app('db')
+                    ->table('file')
+                    ->delete();
             }
             $this->response->success();
         } while (false);

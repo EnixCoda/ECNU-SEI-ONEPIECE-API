@@ -60,6 +60,13 @@ class CreateTables extends Migration
             $table->integer('score');
             $table->timestamps();
         });
+        Schema::create('file', function (Blueprint $table) {
+            $table->increments('id');
+            $table->text('fileId');
+            $table->text('size');
+            $table->text('key');
+            $table->timestamps();
+        });
     }
 
     /**

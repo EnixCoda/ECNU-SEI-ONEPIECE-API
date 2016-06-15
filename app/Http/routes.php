@@ -55,9 +55,13 @@ $app->post('lesson/{lessonName}/{section}', [
 ]);
 
 $app->get('uploadToken', [
-    "as" => "uploadToken",
     "middleware" => ["auth", "log:uploadToken-get"],
     "uses" => "UploadController@get"
+]);
+
+$app->post('uploaded', [
+    "middleware" => ["auth", "log:uploaded-set"],
+    "uses" => "UploadController@set"
 ]);
 
 $app->get('ranking', [

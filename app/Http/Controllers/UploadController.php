@@ -17,7 +17,8 @@ class UploadController extends Controller
     {
         do {
             if (!$request->has("key")
-            || !$request->has("token")) {
+                || !$request->has("token")
+            ) {
                 $this->response->paraErr();
                 break;
             }
@@ -53,11 +54,46 @@ class UploadController extends Controller
             ]);
             $this->response->success();
         } while (false);
+
         return response()->json($this->response);
     }
 
-    public function set()
+    public function set(Request $request)
     {
-
+        do {
+            if (!$request->has("token")
+                || !$request->has("fileId")
+                || !$request->has("filePath")
+            ) {
+                $this->response->paraErr();
+                break;
+            }
+            
+            $token =$request->input("token");
+            $fileId = $request->input("fileId");
+            
+            $stuId = $this->getIdFromToken($token);
+            
+            $result = app('db')
+                ->table('contribute')
+                ->insert([
+                    "fileId"=>$fileId,
+                    "stuId"=>$stuId,
+                    "created_at"=>\Carbon\Carbon::now()
+                ]);
+            
+            if ($result === false) {
+                $this->response->databaseErr();
+                break;
+            }
+            
+            app('db')
+                ->table('file')
+                ->delete();
+            
+            $this->response->success();
+        } while (false);
+        
+        return response()->json($this->response);
     }
 }
