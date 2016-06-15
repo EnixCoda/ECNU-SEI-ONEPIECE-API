@@ -62,28 +62,24 @@ class FLController extends Controller
                 }
                 switch ($type) {
                     case "file":
-                        if (!$request->has("fileId")) {
-                            $this->response->paraErr();
+                        $fileId = $key;
+                        $result = app('db')
+                            ->table('file')
+                            ->where('fileId', $fileId)
+                            ->first();
+                        if ($result === false) {
+                            $this->response->databaseErr();
                             break;
-                        } else {
-                            $fileId = $request->input("fileId");
-                            $result = app('db')
-                                ->table('file')
-                                ->where('fileId', $fileId)
-                                ->first();
-                            if ($result === false) {
-                                $this->response->databaseErr();
-                                break;
-                            }
-                            if ($result === NULL) {
-                                $this->response->fileNotExist();
-                                break;
-                            }
-                            $key = $result->key;
-                            $filename = array_pop(explode("/", $key));
-                            $this->response->setData(["downloadLink" => env("QINIU_SPACE_DOMAIN") . $key . "?attname=$filename"]);
-                            $this->response->success();
                         }
+                        if ($result === NULL) {
+                            $this->response->fileNotExist();
+                            break;
+                        }
+                        $key = $result->{"key"};
+                        $filename = array_slice(explode("/", $key), -1)[0];
+                        $this->response->setData(["downloadLink" => env("QINIU_SPACE_DOMAIN") . $key]);
+//                        $this->response->setData(["downloadLink" => env("QINIU_SPACE_DOMAIN") . $key . "?attname=$filename"]);
+                        $this->response->success();
                         break;
                     case "lesson":
                         if (!$request->has("token")) {
