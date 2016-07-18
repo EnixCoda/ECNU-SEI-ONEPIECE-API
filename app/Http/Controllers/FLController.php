@@ -76,7 +76,7 @@ class FLController extends Controller
                         }
                         $key = $result->{"key"};
                         $filename = array_slice(explode("/", $key), -1)[0];
-                        $this->response->setData(["downloadLink" => env("QINIU_SPACE_DOMAIN") . urlencode($key) . "?attname=$filename"]);
+                        $this->response->setData(["downloadLink" => env("QINIU_SPACE_DOMAIN") . rawurlencode($key) . "?attname=$filename"]);
                         $this->response->success();
                         break;
                     case "lesson":
@@ -141,7 +141,7 @@ class FLController extends Controller
                             $this->response->cusMsg("不可预览的文件类型");
                             break;
                         }
-                        $this->response->setData(["previewLink" => env("QINIU_SPACE_DOMAIN") . urlencode($key)]);
+                        $this->response->setData(["previewLink" => env("QINIU_SPACE_DOMAIN") . rawurlencode($key)]);
                         $this->response->success();
                         break;
                     default:
