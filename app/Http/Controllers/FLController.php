@@ -114,6 +114,42 @@ class FLController extends Controller
                         break;
                 }
                 break;
+            case "preview":
+                if (in_array($type, ["file"]) === false) {
+                    $this->response->invalidPath();
+                    break;
+                }
+                switch ($type) {
+                    case "file":
+                        $fileId = $key;
+                        $result = app('db')
+                            ->table('file')
+                            ->where('fileId', $fileId)
+                            ->first();
+                        if ($result === false) {
+                            $this->response->databaseErr();
+                            break;
+                        }
+                        if ($result === NULL) {
+                            $this->response->fileNotExist();
+                            break;
+                        }
+                        $key = $result->{"key"};
+                        $filename = array_slice(explode("/", $key), -1)[0];
+                        $explodedFilename = explode(".", $filename);
+                        $fileExtensionName = array_pop($explodedFilename);
+                        if (!in_array(strtolower($fileExtensionName), ["jpg", "bmp", "gif", "png", "pdf", "txt"])) {
+                            $this->response->cusMsg("不可预览的文件类型");
+                            break;
+                        }
+                        $this->response->setData(["previewLink" => env("QINIU_SPACE_DOMAIN") . urlencode($key)]);
+                        $this->response->success();
+                        break;
+                    default:
+                        $this->response->invalidPath();
+                        break;
+                }
+                break;
             default:
                 $this->response->invalidPath();
         }
