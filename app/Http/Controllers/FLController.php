@@ -76,8 +76,7 @@ class FLController extends Controller
                         }
                         $key = $result->{"key"};
                         $filename = array_slice(explode("/", $key), -1)[0];
-//                        $this->response->setData(["downloadLink" => env("QINIU_SPACE_DOMAIN") . $key]);
-                        $this->response->setData(["downloadLink" => env("QINIU_SPACE_DOMAIN") . $key . "?attname=$filename"]);
+                        $this->response->setData(["downloadLink" => env("QINIU_SPACE_DOMAIN") . urlencode($key) . "?attname=$filename"]);
                         $this->response->success();
                         break;
                     case "lesson":
