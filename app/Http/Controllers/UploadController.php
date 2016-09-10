@@ -71,7 +71,7 @@ class UploadController extends Controller
             
             $token =$request->input("token");
             $fileId = $request->input("fileId");
-            
+            $filePath=$request->input("filePath");
             $stuId = $this->getIdFromToken($token);
             
             $result = app('db')
@@ -86,14 +86,44 @@ class UploadController extends Controller
                 $this->response->databaseErr();
                 break;
             }
-            
-            app('db')
-                ->table('file')
-                ->delete();
-            
+
+            $detail=$this->getFileDetail($filePath);
+            if($detail==false){
+                break;
+            }else{
+                $size=$detail["size"];
+                $this->addFile($fileId,$size,$filePath);
+            }
             $this->response->success();
         } while (false);
         
         return response()->json($this->response);
+    }
+    public function addFile($fileId,$size,$key){
+        $result = app('db')
+            ->table('file')
+            ->insert([
+                "fileId"=>$fileId,
+                "size"=>$size,
+                "key"=>$key
+            ]);
+
+        if ($result === false) {
+            $this->response->databaseErr();
+            return false;
+        }
+        return true;
+    }
+    public function getFileDetail($filepath){
+        $auth = new Auth(env("QINIU_AK"), env("QINIU_SK"));
+        $bucketMgr = new BucketManager($auth);
+        list($ret, $err) = $bucketMgr->stat(env("QINIU_BUCKET_NAME"), $filepath);
+        if ($err !== null) {
+            return false;
+        } else {
+            return $ret;
+        }
+
+
     }
 }
