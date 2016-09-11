@@ -75,6 +75,7 @@ class UploadController extends Controller
             $stuId = $this->getIdFromToken($token);
             $detail = $this->getFileDetail($filePath);
             if ($detail === false) {
+                $this->response->storageErr();
                 break;
             } else {
                 $result = app('db')
@@ -89,7 +90,12 @@ class UploadController extends Controller
                     break;
                 }
                 $size = $detail["size"];
-                $this->addFile($fileId, $size, $filePath);
+                if ($detail["fileId"] != $fileId) {
+                    $this->response->cusMsg("文件路径与ID不匹配");
+                    break;
+                } else {
+                    $this->addFile($fileId, $size, $filePath);
+                }
             }
             $this->response->success();
         } while (false);
@@ -121,6 +127,8 @@ class UploadController extends Controller
             if ($result === false) {
                 $this->response->databaseErr();
                 return false;
+
+
             } else {
                 $this->response->fileExist();
             }
@@ -134,7 +142,6 @@ class UploadController extends Controller
         $bucketMgr = new BucketManager($auth);
         list($ret, $err) = $bucketMgr->stat(env("QINIU_BUCKET_NAME"), $filepath);
         if ($err !== null) {
-            $this->response->storageErr();
             return false;
         } else {
             return $ret;
