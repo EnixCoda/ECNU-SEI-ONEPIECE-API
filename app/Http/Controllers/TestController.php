@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
+
 use Illuminate\Http\Request;
 use Qiniu\Auth;
 use Qiniu\Storage\BucketManager;
@@ -14,25 +15,27 @@ class TestController extends Controller
 
     public function get(Request $request)
     {
-        $filePath='专业必修课程/C++语言程序设计/C++语言程序设计/课件-鲍钰/C++程序设计（1）.ppt';
-        $detail=$this->getFileDetail($filePath);
-        if($detail==false){
-            return false;
-        }else{
+        $filePath = '专业必修课程/C++语言程序设计/C+语言程序设计/课件-鲍钰/C++程序设计（1）.ppt';
+        $detail = $this->getFileDetail($filePath);
+        if ($detail == false) {
+            return response();
+        } else {
 //            var_dump($detail);
-            echo $size=$detail["fsize"];
+            echo $size = $detail["fsize"] . "\n";
+            var_dump($detail);
+            echo date("Y-m-d h:i:s", $detail["putTime"]);
 
 //           if( $this->addFile("sltest",$size,$filePath)){echo  "success";};
-
-
-            $result = app('db')
-                ->table('file')
-                ->select('key')
-                ->where('fileId','=','sltest')
-            ->get();
-            var_dump($result);
+//            $result = app('db')
+//                ->table('file')
+//                ->select('key')
+//                ->where('fileId', '=', 'sltest')
+//                ->get();
+//            var_dump($result);
 
         }
+
+        return response('');
     }
 
     public function addFile($fileId, $size, $key)
@@ -59,6 +62,7 @@ class TestController extends Controller
 //        $prefix = '专业必修课程/C++语言程序设计/C++语言程序设计/课件-鲍钰/C++程序设计（1）.ppt';
 
         list($ret, $err) = $bucketMgr->stat(env("QINIU_BUCKET_NAME"), $filepath);
+        var_dump($err);
         if ($err !== null) {
             return false;
         } else {

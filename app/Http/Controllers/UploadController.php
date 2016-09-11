@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Qiniu\Auth;
 use Qiniu\Storage\BucketManager;
@@ -68,44 +69,48 @@ class UploadController extends Controller
                 $this->response->paraErr();
                 break;
             }
-            
-            $token =$request->input("token");
+
+            $token = $request->input("token");
             $fileId = $request->input("fileId");
-            $filePath=$request->input("filePath");
+            $filePath = $request->input("filePath");
             $stuId = $this->getIdFromToken($token);
-            
+
             $result = app('db')
                 ->table('contribute')
                 ->insert([
-                    "fileId"=>$fileId,
-                    "stuId"=>$stuId,
-                    "created_at"=>\Carbon\Carbon::now()
+                    "fileId" => $fileId,
+                    "stuId" => $stuId,
+                    "created_at" => \Carbon\Carbon::now()
                 ]);
-            
+
             if ($result === false) {
                 $this->response->databaseErr();
                 break;
             }
 
-            $detail=$this->getFileDetail($filePath);
-            if($detail==false){
+            $detail = $this->getFileDetail($filePath);
+            if ($detail === false) {
+                $this->response->cusMsg('');
                 break;
-            }else{
-                $size=$detail["size"];
-                $this->addFile($fileId,$size,$filePath);
+            } else {
+                $size = $detail["size"];
+                $this->addFile($fileId, $size, $filePath);
             }
             $this->response->success();
         } while (false);
-        
+
         return response()->json($this->response);
     }
-    public function addFile($fileId,$size,$key){
+
+    private function addFile($fileId, $size, $key)
+    {
         $result = app('db')
             ->table('file')
             ->insert([
-                "fileId"=>$fileId,
-                "size"=>$size,
-                "key"=>$key
+                "fileId" => $fileId,
+                "size" => $size,
+                "key" => $key,
+                "created_at" => \Carbon\Carbon::now()
             ]);
 
         if ($result === false) {
@@ -114,16 +119,17 @@ class UploadController extends Controller
         }
         return true;
     }
-    public function getFileDetail($filepath){
+
+    private function getFileDetail($filepath)
+    {
         $auth = new Auth(env("QINIU_AK"), env("QINIU_SK"));
         $bucketMgr = new BucketManager($auth);
         list($ret, $err) = $bucketMgr->stat(env("QINIU_BUCKET_NAME"), $filepath);
         if ($err !== null) {
+            $this->response->cusMsg('无法从七牛获取数据');
             return false;
         } else {
             return $ret;
         }
-
-
     }
 }
