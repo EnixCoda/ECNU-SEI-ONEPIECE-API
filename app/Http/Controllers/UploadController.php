@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Monolog\Handler\NullHandlerTest;
 use Qiniu\Auth;
 use Qiniu\Storage\BucketManager;
 
@@ -73,37 +74,49 @@ class UploadController extends Controller
             $fileId = $request->input("fileId");
             $filePath = $request->input("filePath");
             $stuId = $this->getIdFromToken($token);
+            if ($stuId !== NULL) {
+                $this->response->cusMsg("无效的Token");
+                break;
+            }
             $detail = $this->getFileDetail($filePath);
             if ($detail === false) {
                 $this->response->storageErr();
                 break;
-            } else {
-                $result = app('db')
-                    ->table('contribute')
-                    ->insert([
-                        "fileId" => $fileId,
-                        "stuId" => $stuId,
-                        "created_at" => \Carbon\Carbon::now()
-                    ]);
-                if ($result === false) {
-                    $this->response->databaseErr();
-                    break;
-                }
-                $size = $detail["size"];
-                if ($detail["fileId"] != $fileId) {
-                    $this->response->cusMsg("文件路径与ID不匹配");
-                    break;
-                } else {
-                    $this->addFile($fileId, $size, $filePath);
-                }
             }
+            if ($detail["fileId"] !== $fileId) {
+                $this->response->cusMsg("文件路径与ID不匹配");
+                break;
+            }
+            if ($this->addFile_fileTable($fileId, $detail["size"], $filePath) === false) {
+                break;
+            }
+            if ($this->addFile_contributeTable($fileId, $stuId) === false) {
+                break;
+            }
+
             $this->response->success();
         } while (false);
 
         return response()->json($this->response);
     }
 
-    private function addFile($fileId, $size, $key)
+    private function addFile_contributeTable($fileId, $stuId)
+    {
+        $result = app('db')
+            ->table('contribute')
+            ->insert([
+                "fileId" => $fileId,
+                "stuId" => $stuId,
+                "created_at" => \Carbon\Carbon::now()
+            ]);
+        if ($result === false) {
+            $this->response->databaseErr();
+            return false;
+        }
+        return true;
+    }
+
+    private function addFile_fileTable($fileId, $size, $key)
     {
         $result = app('db')
             ->table('file')
@@ -127,10 +140,9 @@ class UploadController extends Controller
             if ($result === false) {
                 $this->response->databaseErr();
                 return false;
-
-
             } else {
                 $this->response->fileExist();
+                return false;
             }
         }
         return true;
