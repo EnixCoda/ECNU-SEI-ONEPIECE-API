@@ -159,7 +159,8 @@ class EditController extends Controller
                 break;
             }
             // if admin's operation or requests over limit
-            if ($stuId == env("ADMIN_ID") || $result->{"COUNT(stuId)"} > env("EDIT_LIMIT")) {
+            if ($result->{"COUNT(stuId)"} > env("EDIT_LIMIT")
+                || $stuId == env("ADMIN_ID")) {
                 switch ($type) {
                     case "TRASH":
                         $oldPrefix = $original;
@@ -167,7 +168,7 @@ class EditController extends Controller
                         $newPrefix = str_replace("$lessonName/", "$lessonName/__ARCHIVE__/", $original);
                         break;
                     case "MOVE":
-                        $oldPrefix = $this->popLastSection($original);
+                        $oldPrefix = $original;
                         $newPrefix = $edit;
                         break;
                     case "RENAME":
@@ -175,6 +176,7 @@ class EditController extends Controller
                         $newPrefix = $this->popLastSection($original) . "/" . $edit;
                         break;
                 }
+
                 // replace files with prefix $original to $edit
                 $auth = new Auth(env("QINIU_AK"), env("QINIU_SK"));
                 $bucketManager = new BucketManager($auth);

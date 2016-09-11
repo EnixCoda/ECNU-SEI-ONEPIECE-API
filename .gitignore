@@ -1,2 +1,5 @@
 /vendor
 .env
+.DS_Store
+ONEPIECE.db
+public/
