@@ -8,12 +8,8 @@ cool, cooler, coolest!
 
 init:
 
-1. copy .env.example to .env and edit .env
-
-2. create empty ONEPIECE.db at /database with sqlite3 manually
-
-3. run database migrations:
-
-`
-        >php artisan migration
-`
+0. copy .env.example to .env and edit .env
+0. create empty ONEPIECE.db at /database with sqlite3 manually
+0. install libraries: `> composer install`
+0. run database migrations: `> php artisan migration`
+0. host under `/public`
