@@ -146,6 +146,41 @@ class EditController extends Controller
                 break;
             }
 
+            // try get fileId
+            $result = app('db')
+                ->table('file')
+                ->where([
+                    ["key", $original]
+                ])
+                ->first();
+            if ($result === false) {
+                $this->response->databaseErr();
+                break;
+            }
+            $fileId = NULL;
+            if ($result !== NULL) {
+                $fileId = $result->{"fileId"};
+            }
+
+            // check if is the file's uploader
+            $isUploaderEditing = false;
+            if ($fileId) {
+                $result = app('db')
+                    ->table('contribute')
+                    ->where([
+                        ["stuId", $stuId],
+                        ["fileId", $fileId]
+                    ])
+                    ->first();
+                if ($result === false) {
+                    $this->response->databaseErr();
+                    break;
+                }
+                if ($result !== NULL) {
+                    $isUploaderEditing = true;
+                }
+            }
+
             $result = app('db')
                 ->table('edit')
                 ->select(app('db')->raw('COUNT(stuId)'))
@@ -158,8 +193,10 @@ class EditController extends Controller
                 $this->response->databaseErr();
                 break;
             }
+
             // if admin's operation or requests over limit
             if ($result->{"COUNT(stuId)"} > env("EDIT_LIMIT")
+                || $isUploaderEditing
                 || $stuId == env("ADMIN_ID")) {
                 switch ($type) {
                     case "TRASH":
@@ -194,7 +231,9 @@ class EditController extends Controller
                 }, $iterms);
                 // rename them
                 foreach ($filenames as $filename) {
-                    $bucketManager->rename(env("QINIU_BUCKET_NAME"), $filename, str_replace($oldPrefix, $newPrefix, $filename));
+                    if ($bucketManager->rename(env("QINIU_BUCKET_NAME"), $filename, str_replace($oldPrefix, $newPrefix, $filename)) !== NULL) {
+                        $bucketManager->delete(env("QINIU_BUCKET_NAME"), $filename);
+                    }
                 }
 
                 app('db')
