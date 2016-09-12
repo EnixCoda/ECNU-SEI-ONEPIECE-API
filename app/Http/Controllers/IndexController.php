@@ -180,7 +180,7 @@ class IndexController extends Controller
             $filename = array_pop($path);
 
             if (strpos($key, "__ARCHIVE__") !== false) continue;
-            if (count($path) == 0 && $filename == "index.html") continue;
+            if (count($path) === 0 && $filename === "index.html") continue;
             if (strpos($filename, "申请-") === 0) continue;
             if (count($path) > 0 && $path[0] === "_log") continue;
 
@@ -205,7 +205,7 @@ class IndexController extends Controller
                 if (!$dirExist) {
                     array_push($cur->content, new Dir($dirName));
                 }
-                $cur = $cur->content[count($cur->content) - 1];
+                $cur = $cur->content[$i];
             }
             array_push($cur->content, new File($id, $filename, $size, $score));
         }
