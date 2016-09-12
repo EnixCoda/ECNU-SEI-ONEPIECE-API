@@ -73,24 +73,27 @@ class UploadController extends Controller
             $token = $request->input("token");
             $fileId = $request->input("fileId");
             $filePath = $request->input("filePath");
+
             $stuId = $this->getIdFromToken($token);
-            if ($stuId !== NULL) {
-                $this->response->cusMsg("无效的Token");
+            if ($stuId === NULL) {
+                $this->response->invalidUser();
                 break;
             }
-            $detail = $this->getFileDetail($filePath);
+
+            $detail = $this->getFileDetailFromQiniu($filePath);
             if ($detail === false) {
-                $this->response->storageErr();
                 break;
             }
-            if ($detail["fileId"] !== $fileId) {
+            if ($detail["hash"] !== $fileId) {
                 $this->response->cusMsg("文件路径与ID不匹配");
                 break;
             }
-            if ($this->addFile_fileTable($fileId, $detail["size"], $filePath) === false) {
+
+            if ($this->addFileToTableFile($detail, $filePath) === false) {
                 break;
             }
-            if ($this->addFile_contributeTable($fileId, $stuId) === false) {
+
+            if ($this->addFileToTableContribute($detail, $stuId) === false) {
                 break;
             }
 
@@ -100,12 +103,12 @@ class UploadController extends Controller
         return response()->json($this->response);
     }
 
-    private function addFile_contributeTable($fileId, $stuId)
+    private function addFileToTableContribute($detail, $stuId)
     {
         $result = app('db')
             ->table('contribute')
             ->insert([
-                "fileId" => $fileId,
+                "fileId" => $detail["hash"],
                 "stuId" => $stuId,
                 "created_at" => \Carbon\Carbon::now()
             ]);
@@ -116,44 +119,45 @@ class UploadController extends Controller
         return true;
     }
 
-    private function addFile_fileTable($fileId, $size, $key)
+    private function addFileToTableFile($detail, $key)
     {
         $result = app('db')
             ->table('file')
-            ->select('fileId')
-            ->where('key', '=', $key)
+            ->where('key', $key)
             ->get();
-
         if ($result === false) {
             $this->response->databaseErr();
             return false;
         }
-        if (count($result) === 0) {
-            $result = app('db')
-                ->table('file')
-                ->insert([
-                    "fileId" => $fileId,
-                    "size" => $size,
-                    "key" => $key,
-                    "created_at" => \Carbon\Carbon::now()
-                ]);
-            if ($result === false) {
-                $this->response->databaseErr();
-                return false;
-            } else {
-                $this->response->fileExist();
-                return false;
-            }
+
+        if (count($result) > 0) {
+            $this->response->fileExist();
+            return false;
         }
+
+        $result = app('db')
+            ->table('file')
+            ->insert([
+                "fileId" => $detail["hash"],
+                "size" => $detail["fsize"],
+                "key" => $key,
+                "created_at" => \Carbon\Carbon::now()
+            ]);
+        if ($result === false) {
+            $this->response->databaseErr();
+            return false;
+        }
+
         return true;
     }
 
-    private function getFileDetail($filepath)
+    private function getFileDetailFromQiniu($filepath)
     {
         $auth = new Auth(env("QINIU_AK"), env("QINIU_SK"));
         $bucketMgr = new BucketManager($auth);
         list($ret, $err) = $bucketMgr->stat(env("QINIU_BUCKET_NAME"), $filepath);
         if ($err !== null) {
+            $this->response->cusMsg($err->getResponse()->error);
             return false;
         } else {
             return $ret;
