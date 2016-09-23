@@ -231,7 +231,7 @@ class EditController extends Controller
                 }, $iterms);
                 // rename them
                 foreach ($filenames as $filename) {
-                    if (moveFile($filename, str_replace($oldPrefix, $newPrefix, $filename)) !== false) {
+                    if (moveFile($filename, str_replace($oldPrefix, $newPrefix, $filename)) === false) {
                         deleteFile($filename);
                     }
                 }
@@ -265,11 +265,14 @@ class EditController extends Controller
         return join("/", array_slice(explode("/", $path), 0, count(explode("/", $path)) - 1));
     }
 
-    function shiftFirstSection ($path) {
+    function shiftFirstSection($path)
+    {
         return join("/", array_slice(explode("/", $path), 1));
     }
-     function deleteFile($path){
-        do{
+
+    function deleteFile($path)
+    {
+        do {
             $auth = new Auth(env("QINIU_AK"), env("QINIU_SK"));
             $bucketManager = new BucketManager($auth);
             $bucket = env("QINIU_BUCKET_NAME");
@@ -286,11 +289,13 @@ class EditController extends Controller
                 $this->response->databaseErr();
                 break;
             }
+
             return true;
-        }while(false);
+        } while (false);
         return false;
     }
-     function moveFile($path, $objpath)
+    
+    function moveFile($path, $objpath)
     {
         do {
             $auth = new Auth(env("QINIU_AK"), env("QINIU_SK"));
@@ -320,7 +325,5 @@ class EditController extends Controller
             return true;
         } while (false);
         return false;
-
-
     }
 }
