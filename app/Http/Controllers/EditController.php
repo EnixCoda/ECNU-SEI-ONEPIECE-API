@@ -283,9 +283,9 @@ class EditController extends Controller
             }
             $result = app('db')
                 ->table('file')
-                ->where('key',$path)
+                ->where('key', $path)
                 ->delete();
-            if($result===false){
+            if ($result===false) {
                 $this->response->databaseErr();
                 break;
             }
@@ -295,19 +295,19 @@ class EditController extends Controller
         return false;
     }
     
-    function moveFile($path, $objpath)
+    function moveFile($from, $to)
     {
         do {
             $auth = new Auth(env("QINIU_AK"), env("QINIU_SK"));
             $bucketManager = new BucketManager($auth);
             $bucket = env("QINIU_BUCKET_NAME");
-            $err = $bucketManager->move($bucket, $path, $bucket, $objpath);
+            $err = $bucketManager->move($bucket, $from, $bucket, $to);
             if ($err !== null) {
                 $this->response->cusMsg($err->getResponse()->error);
                 break;
             }
 
-            list($ret, $err) = $bucketManager->stat($bucket, $objpath);
+            list($ret, $err) = $bucketManager->stat($bucket, $to);
             if ($err !== null) {
                 $this->response->cusMsg($err->getResponse()->error);
                 break;
@@ -315,9 +315,9 @@ class EditController extends Controller
 
             $result = app('db')
                 ->table('file')
-                ->where('key',$path)
-                ->update(['key'=>$objpath]);
-            if($result===false){
+                ->where('key', $from)
+                ->update(['key' => $to]);
+            if ($result === false){
                 $this->response->databaseErr();
                 break;
             }
