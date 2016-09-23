@@ -231,8 +231,8 @@ class EditController extends Controller
                 }, $iterms);
                 // rename them
                 foreach ($filenames as $filename) {
-                    if ($bucketManager->rename(env("QINIU_BUCKET_NAME"), $filename, str_replace($oldPrefix, $newPrefix, $filename)) !== NULL) {
-                        $bucketManager->delete(env("QINIU_BUCKET_NAME"), $filename);
+                    if (moveFile($filename, str_replace($oldPrefix, $newPrefix, $filename)) !== false) {
+                        deleteFile($filename);
                     }
                 }
 
@@ -267,5 +267,60 @@ class EditController extends Controller
 
     function shiftFirstSection ($path) {
         return join("/", array_slice(explode("/", $path), 1));
+    }
+     function deleteFile($path){
+        do{
+            $auth = new Auth(env("QINIU_AK"), env("QINIU_SK"));
+            $bucketManager = new BucketManager($auth);
+            $bucket = env("QINIU_BUCKET_NAME");
+            $err = $bucketManager->delete($bucket, $path);
+            if ($err !== null) {
+                $this->response->cusMsg($err->getResponse()->error);
+                break;
+            }
+            $result = app('db')
+                ->table('file')
+                ->where('key',$path)
+                ->delete();
+            if($result===false){
+                $this->response->databaseErr();
+                break;
+            }
+            return true;
+        }while(false);
+        return false;
+    }
+     function moveFile($path, $objpath)
+    {
+        do {
+            $auth = new Auth(env("QINIU_AK"), env("QINIU_SK"));
+            $bucketManager = new BucketManager($auth);
+            $bucket = env("QINIU_BUCKET_NAME");
+            $err = $bucketManager->move($bucket, $path, $bucket, $objpath);
+            if ($err !== null) {
+                $this->response->cusMsg($err->getResponse()->error);
+                break;
+            }
+
+            list($ret, $err) = $bucketManager->stat($bucket, $objpath);
+            if ($err !== null) {
+                $this->response->cusMsg($err->getResponse()->error);
+                break;
+            }
+
+            $result = app('db')
+                ->table('file')
+                ->where('key',$path)
+                ->update(['key'=>$objpath]);
+            if($result===false){
+                $this->response->databaseErr();
+                break;
+            }
+
+            return true;
+        } while (false);
+        return false;
+
+
     }
 }
