@@ -5,28 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use \Qiniu\Auth;
 use \Qiniu\Storage\BucketManager;
-
-class Dir
-{
-    function __construct($name)
-    {
-        $this->name = $name;
-        $this->isDir = true;
-        $this->content = array();
-    }
-}
-
-class File
-{
-    function __construct($id, $name, $size, $score)
-    {
-        $this->id = $id;
-        $this->name = $name;
-        $this->size = $size;
-        $this->isDir = false;
-        $this->score = $score;
-    }
-}
+use App\Museum\Dir;
+use App\Museum\File;
 
 class IndexController extends Controller
 {

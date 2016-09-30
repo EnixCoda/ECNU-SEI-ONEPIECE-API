@@ -99,7 +99,8 @@ class EditController extends Controller
             }
             // expected format: ****课程/[***]+
             if (!$this->matchPathFormat($original)
-            || ($type == "MOVE" && !$this->matchPathFormat($edit))) {
+                || ($type == "MOVE" && !$this->matchPathFormat($edit))
+            ) {
                 $this->response->invalidPath();
                 break;
             }
@@ -197,7 +198,10 @@ class EditController extends Controller
             // if admin's operation or requests over limit
             if ($result->{"COUNT(stuId)"} > env("EDIT_LIMIT")
                 || $isUploaderEditing
-                || $stuId == env("ADMIN_ID")) {
+                || $stuId == env("ADMIN_ID")
+            ) {
+                $oldPrefix = "";
+                $newPrefix = "";
                 switch ($type) {
                     case "TRASH":
                         $oldPrefix = $original;
@@ -231,8 +235,8 @@ class EditController extends Controller
                 }, $iterms);
                 // rename them
                 foreach ($filenames as $filename) {
-                    if (moveFile($filename, str_replace($oldPrefix, $newPrefix, $filename)) === false) {
-                        deleteFile($filename);
+                    if ($this->moveFile($filename, str_replace($oldPrefix, $newPrefix, $filename)) === false) {
+                        $this->deleteFile($filename);
                     }
                 }
 
@@ -261,7 +265,8 @@ class EditController extends Controller
         return true;
     }
 
-    function popLastSection ($path) {
+    function popLastSection($path)
+    {
         return join("/", array_slice(explode("/", $path), 0, count(explode("/", $path)) - 1));
     }
 
@@ -285,7 +290,7 @@ class EditController extends Controller
                 ->table('file')
                 ->where('key', $path)
                 ->delete();
-            if ($result===false) {
+            if ($result === false) {
                 $this->response->databaseErr();
                 break;
             }
@@ -294,7 +299,7 @@ class EditController extends Controller
         } while (false);
         return false;
     }
-    
+
     function moveFile($from, $to)
     {
         do {
@@ -317,13 +322,14 @@ class EditController extends Controller
                 ->table('file')
                 ->where('key', $from)
                 ->update(['key' => $to]);
-            if ($result === false){
+            if ($result === false) {
                 $this->response->databaseErr();
                 break;
             }
 
             return true;
         } while (false);
+
         return false;
     }
 }
