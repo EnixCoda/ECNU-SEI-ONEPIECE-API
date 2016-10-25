@@ -1,5 +1,6 @@
-/vendor
+vendor
+.idea/
 .env
 .DS_Store
 ONEPIECE.db
-public/
+public/assets/*

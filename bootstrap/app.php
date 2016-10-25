@@ -65,6 +65,8 @@ $app->singleton(
 $app->routeMiddleware([
     'auth' => App\Http\Middleware\Authenticate::class,
     'log' => App\Http\Middleware\LogMiddleware::class,
+    'testbefore' => App\Http\Middleware\TestMiddleware::class,
+    'testafter' => App\Http\Middleware\TestAfterMiddleware::class
 ]);
 
 /*

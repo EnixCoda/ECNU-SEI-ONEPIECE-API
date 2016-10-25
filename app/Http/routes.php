@@ -12,78 +12,78 @@
 */
 
 $app->get('', function () use($app) {
-    return new \Illuminate\Http\Response(file_get_contents("index.html"));
+    return new \Illuminate\Http\Response(file_get_contents('assets/index.html'));
 });
 
 $app->get('test', [
-    "middleware" => "log:test",
-    "uses" => "TestController@get"
+    'middleware' => ['auth', 'log:test'],
+    'uses' => 'TestController@get'
 ]);
 
 $app->get('index', [
-    "middleware" => "log:index",
-    "uses" => "IndexController@get"
+    'middleware' => 'log:index',
+    'uses' => 'IndexController@get'
 ]);
 
 $app->post('login', [
-    "middleware" => "log:login",
-    "uses" => "LoginController@main"
+    'middleware' => 'log:login',
+    'uses' => 'LoginController@main'
 ]);
-//
+
 $app->get('file/{fileId}/{section}', [
-    "as" => "getFile",
-    "middleware" => "log:file-get",
-    "uses" => "FileController@get"
+    'as' => 'getFile',
+    'middleware' => 'log:file-get',
+    'uses' => 'FileController@get'
 ]);
 
 $app->post('file/{fileId}/{section}', [
-    "as" => "opFile",
-    "middleware" => ["auth", "log:file-set"],
-    "uses" => "FileController@set"
+    'as' => 'opFile',
+    'middleware' => ['auth', 'log:file-set'],
+    'uses' => 'FileController@set'
 ]);
 
 $app->get('lesson/{lessonName}/{section}', [
-    "as" => "getLesson",
-    "middleware" => "log:lesson-get",
-    "uses" => "LessonController@get"
+    'as' => 'getLesson',
+    'middleware' => 'log:lesson-get',
+    'uses' => 'LessonController@get'
 ]);
 
 $app->post('lesson/{lessonName}/{section}', [
-    "as" => "opLesson",
-    "middleware" => ["auth", "log:lesson-set"],
-    "uses" => "LessonController@set"
+    'as' => 'opLesson',
+    'middleware' => ['auth', 'log:lesson-set'],
+    'uses' => 'LessonController@set'
 ]);
 
 $app->get('uploadToken', [
-    "middleware" => ["auth", "log:uploadToken-get"],
-    "uses" => "UploadController@get"
+    'middleware' => ['auth', 'log:uploadToken-get'],
+    'uses' => 'UploadController@get'
 ]);
 
 $app->post('uploaded', [
-    "middleware" => ["auth", "log:uploaded-set"],
-    "uses" => "UploadController@set"
+    'middleware' => ['auth', 'log:uploaded-set'],
+    'uses' => 'UploadController@set'
 ]);
 
 $app->get('ranking', [
-    "as" => "ranking",
-    "middleware" => ["log:ranking-get"],
-    "uses" => "RankingController@get"
+    'as' => 'ranking',
+    'middleware' => ['log:ranking-get'],
+    'uses' => 'RankingController@get'
 ]);
 
 $app->get('edit', [
-    "as" => "edit",
-    "middleware" => ["log:edit-get"],
-    "uses" => "EditController@get"
+    'as' => 'edit',
+    'middleware' => ['log:edit-get'],
+    'uses' => 'EditController@get'
 ]);
 
 $app->post('edit', [
-    "as" => "edit",
-    "middleware" => ["auth", "log:edit-set"],
-    "uses" => "EditController@set"
+    'as' => 'edit',
+    'middleware' => ['auth', 'log:edit-set'],
+    'uses' => 'EditController@set'
 ]);
 
 $app->post('contribute', [
-    "as" => "contri",
-    "middleware" => ["auth", "log:contribute"],
-    "uses" => "UploadController@set"
+    'as' => 'contri',
+    'middleware' => ['auth', 'log:contribute'],
+    'uses' => 'UploadController@set'
 ]);
