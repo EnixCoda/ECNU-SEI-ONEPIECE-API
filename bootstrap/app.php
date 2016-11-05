@@ -59,12 +59,12 @@ $app->singleton(
 |
 */
 
- $app->middleware([
- ]);
+$app->middleware([
+    App\Http\Middleware\LogMiddleware::class
+]);
 
 $app->routeMiddleware([
     'auth' => App\Http\Middleware\Authenticate::class,
-    'log' => App\Http\Middleware\LogMiddleware::class,
     'testbefore' => App\Http\Middleware\TestMiddleware::class,
     'testafter' => App\Http\Middleware\TestAfterMiddleware::class
 ]);
@@ -96,6 +96,7 @@ $app->register(App\Providers\AuthServiceProvider::class);
 */
 
 $app->group(['namespace' => 'App\Http\Controllers'], function ($app) {
+    // do not remove $app parameter
     require __DIR__.'/../app/Http/routes.php';
 });
 

@@ -2,5 +2,6 @@ vendor
 .idea/
 .env
 .DS_Store
+ARCHIVES/
 ONEPIECE.db
 public/assets/*

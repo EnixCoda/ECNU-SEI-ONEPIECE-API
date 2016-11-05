@@ -3,16 +3,14 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 
-class FLController extends Controller
-{
-    public function __construct()
-    {
+class FLController extends Controller {
+    public function __construct() {
         parent::__construct();
     }
 
-    public function _get(Request $request, $type, $key, $section)
-    {
+    public function _get(Request $request, $type, $key, $section) {
         switch ($section) {
             case "score":
                 if (in_array($type, ["file"]) === false) {
@@ -35,6 +33,7 @@ class FLController extends Controller
                     $this->response->success();
                 }
                 break;
+
             case "comment":
                 if (in_array($type, ["file", "lesson"]) === false) {
                     $this->response->invalidPath();
@@ -54,6 +53,7 @@ class FLController extends Controller
                     $this->response->success();
                 }
                 break;
+
             case "download":
                 if (in_array($type, ["file", "lesson"]) === false) {
                     $this->response->invalidPath();
@@ -84,7 +84,7 @@ class FLController extends Controller
                             $this->response->paraErr();
                         }
                         $token = $request->input("token");
-                        $stuId = $this->getIdFromToken($token);
+                        $stuId = $request->user();
                         if ($stuId === NULL) {
                             $this->response->invalidUser();
                             break;
@@ -113,6 +113,7 @@ class FLController extends Controller
                         break;
                 }
                 break;
+
             case "preview":
                 if (in_array($type, ["file"]) === false) {
                     $this->response->invalidPath();
@@ -149,26 +150,30 @@ class FLController extends Controller
                         break;
                 }
                 break;
+
             default:
                 $this->response->invalidPath();
         }
         return response()->json($this->response);
     }
 
-    public function _set(Request $request, $type, $key, $section)
-    {
-        $stuId = $this->getIdFromToken($request->input("token"));
-        \header("stuId:$stuId");
+    public function _set(Request $request, $type, $key, $section) {
+        $stuId = $request->user()->stuId;
         switch ($section) {
             case "score":
                 if (in_array($type, ["file"]) === false) {
                     $this->response->invalidPath();
                     break;
                 }
-                if (!$request->has("score")) {
+                $validate = app('validator')
+                    ->make($request->all(), [
+                        'score' => 'required'
+                    ]);
+                if ($validate->fails()) {
                     $this->response->paraErr();
                     break;
                 }
+
                 $score = $request->input("score") < 0 ? -2 : 1;
                 $tableName = "score";
                 $result = app('db')
@@ -191,7 +196,7 @@ class FLController extends Controller
                                 "type" => $type,
                                 "key" => $key,
                                 "score" => $score,
-                                "created_at" => \Carbon\Carbon::now()
+                                "created_at" => Carbon::now()
                             ]);
                         if ($result === false) {
                             $this->response->databaseErr();
@@ -203,7 +208,7 @@ class FLController extends Controller
                             ->table('score')
                             ->update([
                                 "score" => $score,
-                                "updated_at" => \Carbon\Carbon::now()
+                                "updated_at" => Carbon::now()
                             ]);
                         if ($result === false) {
                             $this->response->databaseErr();
@@ -213,18 +218,22 @@ class FLController extends Controller
                     }
                 }
                 break;
+
             case "comment":
                 if (in_array($type, ["file", "lesson"]) === false) {
                     $this->response->invalidPath();
                     break;
                 }
-                if (!$request->has("comment")
-                    || !$request->has("username")
-                ) {
+                $validate = app('validator')
+                    ->make($request->all(), [
+                        'comment' => 'required',
+                        'username' => 'required'
+                    ]);
+                if ($validate->fails()) {
                     $this->response->paraErr();
-                    $this->response->appendMsg("comment,username");
                     break;
                 }
+
                 $comment = $request->input("comment");
                 $username = $request->input("username");
                 if ($this->lengthOverflow($comment, env("MAX_COMMENT_LENGTH"))
@@ -243,7 +252,7 @@ class FLController extends Controller
                         "username" => $username,
                         "type" => $type,
                         "key" => $key,
-                        "created_at" => \Carbon\Carbon::now()
+                        "created_at" => Carbon::now()
                     ]);
                 if ($result === false) {
                     $this->response->databaseErr();
@@ -261,6 +270,7 @@ class FLController extends Controller
                 }
                 $this->response->success();
                 break;
+
             default:
                 $this->response->invalidPath();
         }

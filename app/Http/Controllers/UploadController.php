@@ -4,34 +4,28 @@ namespace App\Http\Controllers;
 
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Monolog\Handler\NullHandlerTest;
-use Qiniu\Auth;
-use Qiniu\Storage\BucketManager;
+use App\Museum\Qiniu;
 
-class UploadController extends Controller
-{
-    public function __construct()
-    {
+class UploadController extends Controller {
+    public function __construct() {
         parent::__construct();
     }
 
-    public function get(Request $request)
-    {
+    public function get(Request $request) {
         do {
-            if (!$request->has("key")
-                || !$request->has("token")
-            ) {
+            $validate = app('validator')
+                ->make($request->all(), [
+                    'key' => 'required'
+                    ]);
+            if ($validate->fails()) {
                 $this->response->paraErr();
                 break;
             }
-            $auth = new Auth(env("QINIU_AK"), env("QINIU_SK"));
-            $bucketManager = new BucketManager($auth);
-            $key = $request->input("key");
-            $prefix = $key;
-            $marker = '';
-            $limit = 1000;
-            list($iterms, $marker, $err) = $bucketManager->listFiles(env("QINIU_BUCKET_NAME"), $prefix, $marker, $limit);
-            if ($err !== NULL) {
+            $key = $request->input('key');
+
+            $iterms = Qiniu::getList($key);
+            if (!$iterms) {
+                $this->response->storageErr();
                 break;
             } else {
                 if (count($iterms) > 0) {
@@ -40,18 +34,9 @@ class UploadController extends Controller
                 }
             }
 
-            $uptoken = $auth->uploadToken(
-                env("QINIU_BUCKET_NAME"),
-                $key,
-                1200,
-                array(
-                    "insertOnly" => 1,
-                    "returnBody" => '{"name": $(fname), "etag": $(etag), "key": $(key)}'
-                )
-            );
-
+            $uptoken = Qiniu::getUploadToken($key);
             $this->response->setData([
-                "uptoken" => $uptoken
+                'uptoken' => $uptoken
             ]);
             $this->response->success();
         } while (false);
@@ -59,33 +44,31 @@ class UploadController extends Controller
         return response()->json($this->response);
     }
 
-    public function set(Request $request)
-    {
+    public function set(Request $request) {
         do {
-            if (!$request->has("token")
-                || !$request->has("fileId")
-                || !$request->has("filePath")
-            ) {
+            $validate = app('validator')
+                ->make($request->all(), [
+                    'fileId' => 'required',
+                    'filePath' => 'required'
+                    ]);
+            if ($validate->fails()) {
                 $this->response->paraErr();
                 break;
             }
 
-            $token = $request->input("token");
-            $fileId = $request->input("fileId");
-            $filePath = $request->input("filePath");
+            $fileId = $request->input('fileId');
+            $filePath = $request->input('filePath');
 
-            $stuId = $this->getIdFromToken($token);
-            if ($stuId === NULL) {
-                $this->response->invalidUser();
-                break;
-            }
+            $stuId = $request->user()->{'stuId'};
 
-            $detail = $this->getFileDetailFromQiniu($filePath);
+            $detail = Qiniu::getList($filePath);
             if ($detail === false) {
+                $this->response->storageErr();
                 break;
             }
-            if ($detail["hash"] !== $fileId) {
-                $this->response->cusMsg("文件路径与ID不匹配");
+            $detail = $detail[0];
+            if ($detail['hash'] !== $fileId) {
+                $this->response->cusMsg('文件路径与ID不匹配');
                 break;
             }
 
@@ -103,14 +86,13 @@ class UploadController extends Controller
         return response()->json($this->response);
     }
 
-    private function addFileToTableContribute($detail, $stuId)
-    {
+    private function addFileToTableContribute($detail, $stuId) {
         $result = app('db')
             ->table('contribute')
             ->insert([
-                "fileId" => $detail["hash"],
-                "stuId" => $stuId,
-                "created_at" => \Carbon\Carbon::now()
+                'fileId' => $detail['hash'],
+                'stuId' => $stuId,
+                'created_at' => Carbon::now()
             ]);
         if ($result === false) {
             $this->response->databaseErr();
@@ -119,8 +101,7 @@ class UploadController extends Controller
         return true;
     }
 
-    private function addFileToTableFile($detail, $key)
-    {
+    private function addFileToTableFile($detail, $key) {
         $result = app('db')
             ->table('file')
             ->where('key', $key)
@@ -138,10 +119,10 @@ class UploadController extends Controller
         $result = app('db')
             ->table('file')
             ->insert([
-                "fileId" => $detail["hash"],
-                "size" => $detail["fsize"],
-                "key" => $key,
-                "created_at" => \Carbon\Carbon::now()
+                'fileId' => $detail['hash'],
+                'size' => $detail['fsize'],
+                'key' => $key,
+                'created_at' => Carbon::now()
             ]);
         if ($result === false) {
             $this->response->databaseErr();
@@ -149,18 +130,5 @@ class UploadController extends Controller
         }
 
         return true;
-    }
-
-    private function getFileDetailFromQiniu($filepath)
-    {
-        $auth = new Auth(env("QINIU_AK"), env("QINIU_SK"));
-        $bucketMgr = new BucketManager($auth);
-        list($ret, $err) = $bucketMgr->stat(env("QINIU_BUCKET_NAME"), $filepath);
-        if ($err !== null) {
-            $this->response->cusMsg($err->getResponse()->error);
-            return false;
-        } else {
-            return $ret;
-        }
     }
 }

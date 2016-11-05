@@ -5,38 +5,36 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Museum\RankingTable;
 
-class RankingController extends Controller
-{
+class RankingController extends Controller {
     protected $bonus;
 
-    public function __construct()
-    {
+    public function __construct() {
         parent::__construct();
-
         $this->bonus = [
-            "UPLOAD" => 10,
-            "RATE" => 1,
-            "COMMENT" => 3,
-            "BAD" => -20,
+            'UPLOAD' => 10,
+            'RATE' => 1,
+            'COMMENT' => 3,
+            'BAD' => -20,
         ];
     }
 
-    public function get(Request $request)
-    {
-        app('db')->enableQueryLog();
+    public function get(Request $request) {
         do {
-            $userId = "";
-            if ($request->has('token')) {
+            $userId = '';
+            if (isset($request->cookie()['token'])) {
                 $result = app('db')
                     ->table('user')
                     ->select('stuId')
-                    ->where('token', $request->input('token'))
+                    ->where('token', $request->cookie()['token'])
                     ->first();
-                if (!$result) {
+                if ($result === false) {
+                    $this->response->databaseErr();
+                    break;
+                }
+                if ($result === NULL) {
                     $this->response->invalidUser();
                     break;
                 }
-                \header("stuId:$result->stuId");
                 $userId = $result->stuId;
             }
 
@@ -48,10 +46,9 @@ class RankingController extends Controller
             if ($resultContri === false) {
                 $this->response->databaseErr();
                 break;
-            } else {
-                foreach ($resultContri as $row) {
-                    $contri[$row->fileId] = $row->stuId;
-                }
+            }
+            foreach ($resultContri as $row) {
+                $contri[$row->fileId] = $row->stuId;
             }
 
             $rankingTable = new RankingTable();
@@ -66,12 +63,11 @@ class RankingController extends Controller
             if ($resultContribute === false) {
                 $this->response->databaseErr();
                 break;
-            } else {
-                foreach ($resultContribute as $row) {
-                    $stuId = $row->stuId;
-                    $score = $row->{"COUNT(DISTINCT fileId)"} * $this->bonus["UPLOAD"];
-                    $rankingTable->addScore($stuId, "UPLOAD", $score);
-                }
+            }
+            foreach ($resultContribute as $row) {
+                $stuId = $row->stuId;
+                $score = $row->{'COUNT(DISTINCT fileId)'} * $this->bonus['UPLOAD'];
+                $rankingTable->addScore($stuId, 'UPLOAD', $score);
             }
 
             // add each file's score onto contributors
@@ -82,7 +78,6 @@ class RankingController extends Controller
                 ->get();
             if ($resultScores === false) {
                 $this->response->databaseErr();
-                $this->response->appendMsg("3");
                 break;
             } else {
                 foreach ($resultScores as $row) {
@@ -91,9 +86,9 @@ class RankingController extends Controller
                     if (isset($contri[$fileId])) {
                         $stuId = $contri[$fileId];
                     } else {
-                        $stuId = env("ADMIN_ID");
+                        $stuId = env('ADMIN_ID');
                     }
-                    $rankingTable->addScore($stuId, "FILE", $score);
+                    $rankingTable->addScore($stuId, 'FILE', $score);
                 }
             }
 
@@ -109,8 +104,8 @@ class RankingController extends Controller
             } else {
                 foreach ($resultScores as $row) {
                     $stuId = $row->stuId;
-                    $score = $row->{"COUNT(*)"} * $this->bonus["RATE"];
-                    $rankingTable->addScore($stuId, "RATE", $score);
+                    $score = $row->{'COUNT(*)'} * $this->bonus['RATE'];
+                    $rankingTable->addScore($stuId, 'RATE', $score);
                 }
             }
 
@@ -126,8 +121,8 @@ class RankingController extends Controller
             } else {
                 foreach ($resultScores as $row) {
                     $stuId = $row->stuId;
-                    $score = $row->{'COUNT(*)'} * $this->bonus["COMMENT"];
-                    $rankingTable->addScore($stuId, "RATE", $score);
+                    $score = $row->{'COUNT(*)'} * $this->bonus['COMMENT'];
+                    $rankingTable->addScore($stuId, 'RATE', $score);
                 }
             }
 
@@ -146,7 +141,7 @@ class RankingController extends Controller
                 }
             }
 
-            if ($userId != "") {
+            if ($userId !== '') {
                 $rankingTable->mark($userId);
             }
 
@@ -154,7 +149,7 @@ class RankingController extends Controller
             $pos = 1;
             $userRanking = NULL;
             foreach ($scoresArr as $ranking) {
-                if (isset($ranking["mark"])) {
+                if (isset($ranking['mark'])) {
                     $userRanking = $this->cleanContributor($ranking, $pos);
                     break;
                 }
@@ -164,17 +159,17 @@ class RankingController extends Controller
             $scoresArr = array_map(function ($cur) {
                 return $this->cleanContributor($cur);
             }, array_slice($scoresArr, 0, 10));
-            $data = array("ranking" => $scoresArr);
-            if ($userId != "") {
+            $data = array('ranking' => $scoresArr);
+            if ($userId !== '') {
                 if ($userRanking !== NULL) {
-                    $data["userRanking"] = $userRanking;
+                    $data['userRanking'] = $userRanking;
                 } else {
-                    $data["userRanking"] = array(
-                        "pos" => "-",
-                        "name" => "-",
-                        "total" => "-",
-                        "rc" => "-",
-                        "upload" => "-"
+                    $data['userRanking'] = array(
+                        'pos' => '-',
+                        'name' => '-',
+                        'total' => '-',
+                        'rc' => '-',
+                        'upload' => '-'
                     );
                 }
             }
@@ -184,15 +179,14 @@ class RankingController extends Controller
         return response()->json($this->response);
     }
     
-    function cleanContributor($contri, $pos = NULL)
-    {
+    private function cleanContributor($contri, $pos = NULL) {
         $clean = array(
-            "name" => $contri["name"],
-            "total" => $contri["totalScore"],
-            "rc" => $contri["rcScore"],
-            "upload" => $contri["fileScore"] + $contri["uploadScore"]
+            'name' => $contri['name'],
+            'total' => $contri['totalScore'],
+            'rc' => $contri['rcScore'],
+            'upload' => $contri['fileScore'] + $contri['uploadScore']
         );
-        if ($pos != NULL) $clean["pos"] = $pos;
+        if ($pos !== NULL) $clean['pos'] = $pos;
         return $clean;
     }
 }

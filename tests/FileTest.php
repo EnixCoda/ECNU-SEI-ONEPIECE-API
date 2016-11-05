@@ -10,8 +10,8 @@ class FileTest extends TestCase {
 		// set
 		$cases = [
 			[
-				"fileId" => "",
-				"section" => "",
+				"fileId" => "a",
+				"section" => "b",
 				"data" => [],
 				"res_code" => 1,
 			],

@@ -10,7 +10,7 @@ class LoginTest extends TestCase {
 	public function test() {
 		$cases = [
 			[
-				"data" => null,
+				"data" => [],
 				"res_code" => 1,
 			],
 			[

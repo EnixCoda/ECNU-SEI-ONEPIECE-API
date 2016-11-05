@@ -3,22 +3,20 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 
-class LoginController extends Controller
-{
-    public function __construct(Request $request)
-    {
+class LoginController extends Controller {
+    public function __construct(Request $request) {
         parent::__construct();
     }
 
-    public function main(Request $request)
-    {
+    public function main(Request $request) {
         do {
-            if ($request->has("id")
-            &&  $request->has("password")
+            if ($request->has('id')
+            &&  $request->has('password')
             ) {
-                $stuId = $request->input("id");
-                $password = $request->input("password");
+                $stuId = $request->input('id');
+                $password = $request->input('password');
 
                 $result = $this->logInToECNU($stuId, $password);
 
@@ -35,7 +33,7 @@ class LoginController extends Controller
 
                 $username = $data->data->name;
                 $cademy = $data->data->cls;
-                $token = $this->genUserToken($stuId, $password);
+                $token = $this->generateUserToken($stuId, $password);
 
                 $result = app('db')
                     ->table('user')
@@ -46,13 +44,13 @@ class LoginController extends Controller
                     // 无stuId记录，第一次登陆
                     $result = app('db')->table('user')
                         ->insert([
-                            "stuId" => $stuId,
-                            "username" => $username,
-                            "password" => $password,
-                            "cademy" => $cademy,
-                            "token" => $token,
-                            "lastAlia" => $username,
-                            "created_at" => \Carbon\Carbon::now()
+                            'stuId' => $stuId,
+                            'username' => $username,
+                            'password' => $password,
+                            'cademy' => $cademy,
+                            'token' => $token,
+                            'lastAlia' => $username,
+                            'created_at' => Carbon::now()
                         ]);
                     if ($result === false) {
                         $this->response->databaseErr();
@@ -62,19 +60,19 @@ class LoginController extends Controller
                     // 有记录
                     $result = app('db')
                         ->table('user')
-                        ->where("stuId", $stuId)
+                        ->where('stuId', $stuId)
                         ->update([
-                            "password" => $password,
-                            "token" => $token,
-                            "updated_at" => \Carbon\Carbon::now()
+                            'password' => $password,
+                            'token' => $token,
+                            'updated_at' => Carbon::now()
                         ]);
                     if ($result === false) {
                         $this->response->databaseErr();
                         break;
                     }
                 }
-            } else if ($request->has("token")) {
-                $token = $request->input("token");
+            } else if (isset($request->cookie()['token'])) {
+                $token = $request->cookie()['token'];
                 $result = app('db')
                     ->table('user')
                     ->where('token', $token)
@@ -92,10 +90,10 @@ class LoginController extends Controller
                 $cademy = $result->cademy;
                 $result = app('db')
                     ->table('user')
-                    ->where("stuId", $stuId)
+                    ->where('stuId', $stuId)
                     ->update([
-                        "token" => $token,
-                        "updated_at" => \Carbon\Carbon::now()
+                        'token' => $token,
+                        'updated_at' => Carbon::now()
                     ]);
                 if ($result === false) {
                     $this->response->databaseErr();
@@ -112,14 +110,19 @@ class LoginController extends Controller
                 'token' => $token,
             ]);
             $this->response->success();
-            $this->response->cusMsg("欢迎！" . $cademy . "的" . $username . "。");
+            // in case some people's info were not updated
+            if ($cademy === '学院') {
+                $cademy = '';
+            } else {
+                $cademy .= '的';
+            }
+            $this->response->cusMsg('欢迎！' . $cademy . $username . '。');
         } while (false);
 
         return response()->json($this->response);
     }
 
-    private function logInToECNU($id, $password)
-    {
+    private function logInToECNU($id, $password) {
         $loginUrl = 'http://202.120.82.2:8081/ClientWeb/pro/ajax/login.aspx';
         $data = array(
             'id' => $id,
@@ -130,7 +133,7 @@ class LoginController extends Controller
         // use key 'http' even if you send the request to https://...
         $options = array(
             'http' => array(
-                'header' => "Content-type: application/x-www-form-urlencoded\r\n",
+                'header' => 'Content-type: application/x-www-form-urlencoded\r\n',
                 'method' => 'POST',
                 'content' => http_build_query($data),
             ),
@@ -140,8 +143,7 @@ class LoginController extends Controller
         return $result;
     }
 
-    private function genUserToken($id, $password)
-    {
+    private function generateUserToken($id, $password) {
         return md5(base64_encode(md5($id, base64_encode($password))));
     }
 }

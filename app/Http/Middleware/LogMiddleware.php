@@ -2,11 +2,11 @@
 
 namespace App\Http\Middleware;
 
+use Illuminate\Http\Request;
+use Carbon\Carbon;
 use Closure;
-use Illuminate\Support\Facades\Request;
 
-class LogMiddleware
-{
+class LogMiddleware {
     /**
      * Handle an incoming request.
      *
@@ -14,35 +14,33 @@ class LogMiddleware
      * @param  \Closure $next
      * @return mixed
      */
-    public function handle($request, Closure $next, $info)
-    {
+    public function handle(Request $request, Closure $next) {
         $stuId = "-";
-        $action = $this->parseAction($request, $info);
-        $result = app('db')->table('log')
+        if ($token = $request->cookie()['token']) {
+            $stu = app('db')
+                ->table('user')
+                ->where([
+                    ['token', $token]
+                ])
+                ->first();
+            $stuId = $stu->stuId;
+        }
+        $action = $this->parseAction($request);
+        app('db')
+            ->table('log')
             ->insert([
-                "id" => NULL,
                 "stuId" => $stuId,
                 "action" => $action,
-                "created_at" => \Carbon\Carbon::now()
+                "created_at" => Carbon::now()
             ]);
         return $next($request);
     }
 
-    function parseAction ($request, $info)
-    {
-        $uri = $request->path();
-        return $info;
-        switch ($info) {
-            case "index":
-                return "index";
-            case "login":
-                if ($id = $request->input("id")
-                    && $password = $request->input("password")){
-                    return "login $id $password";
-                }
-                return "login";
-            default:
-                return "";
-        }
+    private function parseAction(Request $request) {
+        return json_encode([
+            "method" => $request->method(),
+            "path" => $request->path(),
+            "input" => $request->all()
+        ]);
     }
 }

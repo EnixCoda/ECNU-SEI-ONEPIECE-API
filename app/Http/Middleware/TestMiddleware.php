@@ -1,7 +1,23 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: exincoda
- * Date: 2016/10/1
- * Time: 13:13
- */
+
+namespace App\Http\Middleware;
+
+use Closure;
+
+class TestMiddleware {
+    /**
+     * Handle an incoming request.
+     *
+     * @param  \Illuminate\Http\Request $request
+     * @param  \Closure $next
+     * @return mixed
+     */
+
+    public function handle($request, Closure $next) {
+        return $next($request);
+    }
+
+    public function terminate($request, $response) {
+
+    }
+}

@@ -3,24 +3,25 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Qiniu\Auth;
-use Qiniu\Storage\BucketManager;
+use App\Museum\Qiniu;
 
-class EditController extends Controller
-{
-    public function __construct()
-    {
+class EditController extends Controller {
+    public function __construct() {
         parent::__construct();
     }
 
-    public function get(Request $request)
-    {
+    public function get(Request $request) {
         do {
-            if (!$request->has("path")) {
+            $validate = app('validator')
+                ->make($request->all(), [
+                    'path' => 'required'
+                ]);
+            if ($validate->fails()) {
                 $this->response->paraErr();
                 break;
             }
             $path = $request->input("path");
+
             // check saved operations
             $result = app('db')
                 ->table('edit')
@@ -32,37 +33,39 @@ class EditController extends Controller
             }
 
             $edits = array(
-                "MOVE" => [],
-                "TRASH" => 0,
-                "RENAME" => []
+                'MOVE' => [],
+                'TRASH' => 0,
+                'RENAME' => []
             );
             foreach ($result as $row) {
                 $type = $row->type;
                 $edit = $row->edit;
                 // get modification string
-                if ($type == "MOVE") {
-                    $edits["MOVE"][$edit] = isset($edits["MOVE"][$edit]) ? $edits["MOVE"][$edit] + 1 : 1;
-                } else if ($type == "TRASH") {
-                    $edits["TRASH"]++;
-                } else if ($type == "RENAME") {
-                    $newName = explode("/", $edit)[count(explode("/", $edit)) - 1];
-                    $edits["RENAME"][$newName] = isset($edits["TRASH"][$newName]) ? $edits["TRASH"][$newName] + 1 : 1;
+                if ($type == 'MOVE') {
+                    $edits['MOVE'][$edit] = isset($edits['MOVE'][$edit]) ? $edits['MOVE'][$edit] + 1 : 1;
+                } else if ($type == 'TRASH') {
+                    $edits['TRASH']++;
+                } else if ($type == 'RENAME') {
+                    // cannot use array_pop() or negative index
+                    $newName = explode('/', $edit)[count(explode('/', $edit)) - 1];
+                    $edits['RENAME'][$newName] = isset($edits['TRASH'][$newName]) ? $edits['TRASH'][$newName] + 1 : 1;
                 }
             }
 
-            // turn $edits["MOVE"] into array: [edit, count]
+            // turn $edits['MOVE'] into array: [edit, count]
             $editsMoveArr = [];
-            foreach ($edits["MOVE"] as $key => $value) {
-                array_push($editsMoveArr, [$key, $value]);
+            foreach ($edits['MOVE'] as $edit => $count) {
+                array_push($editsMoveArr, [$edit, $count]);
             }
-            $edits["MOVE"] = $editsMoveArr;
+            $edits['MOVE'] = $editsMoveArr;
 
-            // so as $edits["RENAME"]
+            // so as $edits['RENAME']
             $editsRenameArr = [];
-            foreach ($edits["RENAME"] as $key => $value) {
-                array_push($editsRenameArr, [$key, $value]);
+            foreach ($edits['RENAME'] as $edit => $count) {
+                array_push($editsRenameArr, [$edit, $count]);
             }
-            $edits["RENAME"] = $editsRenameArr;
+            $edits['RENAME'] = $editsRenameArr;
+            $edits['LIMIT'] = env('EDIT_LIMIT');
 
             $this->response->setData(["edits" => $edits]);
             $this->response->success();
@@ -71,36 +74,30 @@ class EditController extends Controller
         return response()->json($this->response);
     }
 
-    public function set(Request $request)
-    {
+    public function set(Request $request) {
         do {
-            if (!$request->has("original")
-                || !$request->has("edit")
-                || !$request->has("type")
-                || !$request->has("token")
-            ) {
+            $validate = app('validator')
+                ->make($request->all(), [
+                    'original' => 'required',
+                    'edit' => 'required|different: original',
+                    'type' => 'required|in: MOVE, RENAME, TRASH'
+                ]);
+            if ($validate->fails()) {
                 $this->response->paraErr();
                 break;
             }
-            $original = $request->input("original");
-            $edit = $request->input("edit");
-            $type = $request->input("type");
-            $token = $request->input("token");
-            $stuId = $this->getIdFromToken($token);
+            $original = $request->input('original');
+            $edit = $request->input('edit');
+            $type = $request->input('type');
+            $stuId = $request->user()->{'stuId'};
 
-            if (!in_array($type, ["MOVE", "RENAME", "TRASH"])) {
-                $this->response->paraErr();
-                break;
-            }
-
-            if ($type == "TRASH" && $edit != "-") {
+            if ($type === 'TRASH' && $edit !== '-') {
                 $this->response->paraErr();
                 break;
             }
             // expected format: ****课程/[***]+
             if (!$this->matchPathFormat($original)
-                || ($type == "MOVE" && !$this->matchPathFormat($edit))
-            ) {
+                || ($type === 'MOVE' && !$this->matchPathFormat($edit))) {
                 $this->response->invalidPath();
                 break;
             }
@@ -109,8 +106,8 @@ class EditController extends Controller
             $result = app('db')
                 ->table('edit')
                 ->where([
-                    ["stuId", $stuId],
-                    ["original", $original]
+                    ['stuId', $stuId],
+                    ['original', $original]
                 ])
                 ->first();
             if ($result === false) {
@@ -122,24 +119,27 @@ class EditController extends Controller
                 $result = app('db')
                     ->table('edit')
                     ->insert([
-                        "stuId" => $stuId,
-                        "type" => $type,
-                        "original" => $original,
-                        "edit" => $edit
+                        'stuId' => $stuId,
+                        'type' => $type,
+                        'original' => $original,
+                        'edit' => $edit
                     ]);
             } else {
-                // earlier request found, try update
-                if ($result->edit != $edit) {
+                // earlier record found, try update
+                if ($result->edit !== $edit) {
                     $result = app('db')
                         ->table('edit')
                         ->where([
-                            ["stuId", $stuId],
-                            ["original", $original]
+                            ['stuId', $stuId],
+                            ['original', $original]
                         ])
                         ->update([
-                            "edit" => $edit,
-                            "type" => $type
+                            'edit' => $edit,
+                            'type' => $type
                         ]);
+                } else {
+                    $this->response->success();
+                    break;
                 }
             }
             if ($result === false) {
@@ -151,7 +151,7 @@ class EditController extends Controller
             $result = app('db')
                 ->table('file')
                 ->where([
-                    ["key", $original]
+                    ['key', $original]
                 ])
                 ->first();
             if ($result === false) {
@@ -160,7 +160,7 @@ class EditController extends Controller
             }
             $fileId = NULL;
             if ($result !== NULL) {
-                $fileId = $result->{"fileId"};
+                $fileId = $result->{'fileId'};
             }
 
             // check if is the file's uploader
@@ -169,8 +169,8 @@ class EditController extends Controller
                 $result = app('db')
                     ->table('contribute')
                     ->where([
-                        ["stuId", $stuId],
-                        ["fileId", $fileId]
+                        ['stuId', $stuId],
+                        ['fileId', $fileId]
                     ])
                     ->first();
                 if ($result === false) {
@@ -186,8 +186,8 @@ class EditController extends Controller
                 ->table('edit')
                 ->select(app('db')->raw('COUNT(stuId)'))
                 ->where([
-                    ["edit", $edit],
-                    ["original", $original]
+                    ['edit', $edit],
+                    ['original', $original]
                 ])
                 ->first();
             if ($result === false) {
@@ -196,66 +196,65 @@ class EditController extends Controller
             }
 
             // if admin's operation or requests over limit
-            if ($result->{"COUNT(stuId)"} > env("EDIT_LIMIT")
+            if ($result->{'COUNT(stuId)'} > env('EDIT_LIMIT')
                 || $isUploaderEditing
-                || $stuId == env("ADMIN_ID")
+                || $stuId === env('ADMIN_ID')
             ) {
-                $oldPrefix = "";
-                $newPrefix = "";
+                $oldPrefix = '';
+                $newPrefix = '';
                 switch ($type) {
-                    case "TRASH":
+                    case 'TRASH':
                         $oldPrefix = $original;
-                        $lessonName = explode("/", $original)[1];
+                        $lessonName = explode('/', $original)[1];
                         $newPrefix = str_replace("$lessonName/", "$lessonName/__ARCHIVE__/", $original);
                         break;
-                    case "MOVE":
+                    case 'MOVE':
                         $oldPrefix = $original;
                         $newPrefix = $edit;
                         break;
-                    case "RENAME":
+                    case 'RENAME':
                         $oldPrefix = $original;
-                        $newPrefix = $this->popLastSection($original) . "/" . $edit;
+                        $newPrefix = $this->popLastSection($original) . '/' . $edit;
                         break;
                 }
 
                 // replace files with prefix $original to $edit
-                $auth = new Auth(env("QINIU_AK"), env("QINIU_SK"));
-                $bucketManager = new BucketManager($auth);
                 // get files with prefix $original
-                $prefix = $original;
-                $marker = '';
-                $limit = 1000;
-                list($iterms, $marker, $err) = $bucketManager->listFiles(env("QINIU_BUCKET_NAME"), $prefix, $marker, $limit);
-                if ($err !== NULL) {
+                $iterms = Qiniu::getList($original);
+                if (!$iterms) {
                     $this->response->storageErr();
                     break;
                 }
                 $filenames = array_map(function ($cur) {
-                    return $cur["key"];
+                    return $cur['key'];
                 }, $iterms);
                 // rename them
                 foreach ($filenames as $filename) {
-                    if ($this->moveFile($filename, str_replace($oldPrefix, $newPrefix, $filename)) === false) {
-                        $this->deleteFile($filename);
+                    if (self::moveFile($filename, str_replace($oldPrefix, $newPrefix, $filename)) === false) {
+                        self::deleteFile($filename);
                     }
                 }
+
+                // TODO: remove this edit
+                // TODO: move rest edits
+                // TODO: edit specific records, not resetting the whole table
 
                 app('db')
                     ->table('file')
                     ->delete();
+                $this->response->setData(['executed' => true]);
             }
             $this->response->success();
         } while (false);
         return response()->json($this->response);
     }
 
-    function matchPathFormat($path)
-    {
-        $path = explode("/", $path);
+    private function matchPathFormat($path) {
+        $path = explode('/', $path);
         if (count($path) < 2) return false;
-        if (!in_array($path[0], array("专业必修课程", "专业选修课程", "公共课程"))) return false;
+        if (!in_array($path[0], array('专业必修课程', '专业选修课程', '公共课程'))) return false;
         $i = 1;
-        $symbols = explode(" ", "^ ? : / \\ \" < > ^ * |");
+        $symbols = explode(' ', '^ ? : / \\ \' < > ^ * |');
         while ($i < count($path)) {
             foreach ($symbols as $symbol) {
                 if (strpos($path[$i], $symbol) !== false) return false;
@@ -265,71 +264,28 @@ class EditController extends Controller
         return true;
     }
 
-    function popLastSection($path)
-    {
-        return join("/", array_slice(explode("/", $path), 0, count(explode("/", $path)) - 1));
+    private function popLastSection($path) {
+        return join('/', array_slice(explode('/', $path), 0, count(explode('/', $path)) - 1));
     }
 
-    function shiftFirstSection($path)
-    {
-        return join("/", array_slice(explode("/", $path), 1));
+    private function shiftFirstSection($path) {
+        return join('/', array_slice(explode('/', $path), 1));
     }
 
-    function deleteFile($path)
-    {
-        do {
-            $auth = new Auth(env("QINIU_AK"), env("QINIU_SK"));
-            $bucketManager = new BucketManager($auth);
-            $bucket = env("QINIU_BUCKET_NAME");
-            $err = $bucketManager->delete($bucket, $path);
-            if ($err !== null) {
-                $this->response->cusMsg($err->getResponse()->error);
-                break;
-            }
-            $result = app('db')
-                ->table('file')
-                ->where('key', $path)
-                ->delete();
-            if ($result === false) {
-                $this->response->databaseErr();
-                break;
-            }
-
+    private function deleteFile($path) {
+        // TODO: move to archive bucket
+        if (Qiniu::archive($path)) {
             return true;
-        } while (false);
+        }
+        $this->response->storageErr();
         return false;
     }
 
-    function moveFile($from, $to)
-    {
-        do {
-            $auth = new Auth(env("QINIU_AK"), env("QINIU_SK"));
-            $bucketManager = new BucketManager($auth);
-            $bucket = env("QINIU_BUCKET_NAME");
-            $err = $bucketManager->move($bucket, $from, $bucket, $to);
-            if ($err !== null) {
-                $this->response->cusMsg($err->getResponse()->error);
-                break;
-            }
-
-            list($ret, $err) = $bucketManager->stat($bucket, $to);
-            if ($err !== null) {
-                $this->response->cusMsg($err->getResponse()->error);
-                break;
-            }
-
-            $result = app('db')
-                ->table('file')
-                ->where('key', $from)
-                ->update(['key' => $to]);
-            if ($result === false) {
-                $this->response->databaseErr();
-                break;
-            }
-
+    private function moveFile($from, $to) {
+        if (Qiniu::move($from, $to)) {
             return true;
-        } while (false);
-
+        }
+        $this->response->storageErr();
         return false;
     }
 }

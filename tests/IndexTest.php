@@ -13,4 +13,11 @@ class IndexTest extends TestCase {
 				"res_code" => 0,
 			]);
 	}
+
+	public function testRefresh() {
+	    $this->json('get', 'index?refresh')
+            ->seeJson([
+                'res_code' => 0
+            ]);
+    }
 }

@@ -16,74 +16,68 @@ $app->get('', function () use($app) {
 });
 
 $app->get('test', [
-    'middleware' => ['auth', 'log:test'],
+    'middleware' => ['auth'],
     'uses' => 'TestController@get'
 ]);
 
 $app->get('index', [
-    'middleware' => 'log:index',
     'uses' => 'IndexController@get'
 ]);
 
 $app->post('login', [
-    'middleware' => 'log:login',
     'uses' => 'LoginController@main'
 ]);
 
 $app->get('file/{fileId}/{section}', [
     'as' => 'getFile',
-    'middleware' => 'log:file-get',
     'uses' => 'FileController@get'
 ]);
 
 $app->post('file/{fileId}/{section}', [
     'as' => 'opFile',
-    'middleware' => ['auth', 'log:file-set'],
+    'middleware' => ['auth'],
     'uses' => 'FileController@set'
 ]);
 
 $app->get('lesson/{lessonName}/{section}', [
     'as' => 'getLesson',
-    'middleware' => 'log:lesson-get',
     'uses' => 'LessonController@get'
 ]);
 
 $app->post('lesson/{lessonName}/{section}', [
     'as' => 'opLesson',
-    'middleware' => ['auth', 'log:lesson-set'],
+    'middleware' => ['auth'],
     'uses' => 'LessonController@set'
 ]);
 
 $app->get('uploadToken', [
-    'middleware' => ['auth', 'log:uploadToken-get'],
+    'middleware' => ['auth'],
     'uses' => 'UploadController@get'
 ]);
 
 $app->post('uploaded', [
-    'middleware' => ['auth', 'log:uploaded-set'],
+    'middleware' => ['auth'],
     'uses' => 'UploadController@set'
 ]);
 
 $app->get('ranking', [
     'as' => 'ranking',
-    'middleware' => ['log:ranking-get'],
     'uses' => 'RankingController@get'
 ]);
 
 $app->get('edit', [
     'as' => 'edit',
-    'middleware' => ['log:edit-get'],
     'uses' => 'EditController@get'
 ]);
 
 $app->post('edit', [
     'as' => 'edit',
-    'middleware' => ['auth', 'log:edit-set'],
+    'middleware' => ['auth'],
     'uses' => 'EditController@set'
 ]);
 
 $app->post('contribute', [
     'as' => 'contri',
-    'middleware' => ['auth', 'log:contribute'],
+    'middleware' => ['auth'],
     'uses' => 'UploadController@set'
 ]);
