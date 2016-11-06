@@ -79,11 +79,12 @@ class EditController extends Controller {
             $validate = app('validator')
                 ->make($request->all(), [
                     'original' => 'required',
-                    'edit' => 'required|different: original',
-                    'type' => 'required|in: MOVE, RENAME, TRASH'
+                    'edit' => 'required',
+                    'type' => 'required'
                 ]);
             if ($validate->fails()) {
                 $this->response->paraErr();
+                $this->response->appendMsg('validator');
                 break;
             }
             $original = $request->input('original');

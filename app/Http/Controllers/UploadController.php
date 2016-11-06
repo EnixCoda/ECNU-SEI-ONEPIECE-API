@@ -24,7 +24,7 @@ class UploadController extends Controller {
             $key = $request->input('key');
 
             $iterms = Qiniu::getList($key);
-            if (!$iterms) {
+            if ($iterms === NULL) {
                 $this->response->storageErr();
                 break;
             } else {

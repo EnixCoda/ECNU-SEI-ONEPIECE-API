@@ -16,7 +16,8 @@ class LogMiddleware {
      */
     public function handle(Request $request, Closure $next) {
         $stuId = "-";
-        if ($token = $request->cookie()['token']) {
+        if (isset($request->cookie()['token'])) {
+            $token = $request->cookie()['token'];
             $stu = app('db')
                 ->table('user')
                 ->where([

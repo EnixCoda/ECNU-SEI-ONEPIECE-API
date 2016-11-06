@@ -43,7 +43,7 @@ class Qiniu
         return $uploadToken;
     }
 
-    public static function getList($prefix = '', $limit = 65536)
+    public static function getList($prefix = '', $limit = 1000)
     {
         /**
          *
@@ -55,11 +55,10 @@ class Qiniu
         $bucketMgr = self::getBucketManager();
         $allRecords = [];
         $marker = '';
-        $limit = min([1000, $limit]);
+        $limit = min(1000, $limit);
         do {
             list($records, $marker, $err) = $bucketMgr->listFiles(self::getBucket(), $prefix, $marker, $limit);
             if ($err !== NULL) {
-                var_dump(json_encode($err)['response']['error']);
                 return NULL;
             } else {
                 $allRecords = array_merge($allRecords, $records);

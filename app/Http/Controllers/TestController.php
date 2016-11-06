@@ -5,10 +5,10 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Qiniu\Auth;
 use Qiniu\Storage\BucketManager;
-
+l
 class TestController extends Controller {
     public function __construct() {
-        //
+        parent::__construct();
     }
 
     public function get(Request $request) {
@@ -45,9 +45,10 @@ class TestController extends Controller {
         $result = app('db')
             ->table('log')
             ->orderBy('created_at', 'desc')
-            ->take(5)
+            ->take(50)
             ->get();
 
-        return json_encode($result);
+        $this->response->setData($result);
+        return response()->json($this->response);
     }
 }
