@@ -16,7 +16,7 @@ class UploadController extends Controller {
             $validate = app('validator')
                 ->make($request->all(), [
                     'key' => 'required'
-                    ]);
+                ]);
             if ($validate->fails()) {
                 $this->response->paraErr();
                 break;
@@ -50,7 +50,7 @@ class UploadController extends Controller {
                 ->make($request->all(), [
                     'fileId' => 'required',
                     'filePath' => 'required'
-                    ]);
+                ]);
             if ($validate->fails()) {
                 $this->response->paraErr();
                 break;

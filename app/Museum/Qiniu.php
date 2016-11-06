@@ -5,31 +5,26 @@ namespace App\Museum;
 use \Qiniu\Auth;
 use \Qiniu\Storage\BucketManager;
 
-class Qiniu
-{
-    private static function getAuth()
-    {
+class Qiniu {
+    private static function getAuth() {
         $auth = new Auth(env('QINIU_AK'), env('QINIU_SK'));
         return $auth;
     }
 
-    public static function getBucket($key = 'default')
-    {
+    public static function getBucket($key = 'default') {
         return [
             'default' => env('QINIU_BUCKET_NAME'),
             'archive' => env('QINIU_ARCHIVE_BUCKET_NAME')
         ][$key];
     }
 
-    private static function getBucketManager()
-    {
+    private static function getBucketManager() {
         $auth = self::getAuth();
         $bucketManager = new BucketManager($auth);
         return $bucketManager;
     }
 
-    public static function getUploadToken($key)
-    {
+    public static function getUploadToken($key) {
         $auth = self::getAuth();
         $uploadToken = $auth->uploadToken(
             self::getBucket(),
@@ -43,8 +38,7 @@ class Qiniu
         return $uploadToken;
     }
 
-    public static function getList($prefix = '', $limit = 1000)
-    {
+    public static function getList($prefix = '', $limit = 1000) {
         /**
          *
          * @param string $prefix
@@ -68,13 +62,11 @@ class Qiniu
         return $allRecords;
     }
 
-    public static function archive($from)
-    {
-        return self::move($from, $to = $from, self::getBucket('archive'));
+    public static function archive($from) {
+        return self::move($from, $from . '-' . time(), 'archive');
     }
 
-    public static function move($from, $to, $newBucket = NULL)
-    {
+    public static function move($from, $to, $newBucket = NULL) {
         /**
          * @param string $from
          * @param string $to
@@ -101,8 +93,7 @@ class Qiniu
         return true;
     }
 
-    public static function delete($uniqueFileKey)
-    {
+    public static function delete($uniqueFileKey) {
         /**
          * @param string $uniqueFileKey
          *

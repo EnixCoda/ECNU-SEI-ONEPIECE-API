@@ -98,7 +98,8 @@ class EditController extends Controller {
             }
             // expected format: ****课程/[***]+
             if (!$this->matchPathFormat($original)
-                || ($type === 'MOVE' && !$this->matchPathFormat($edit))) {
+                || ($type === 'MOVE' && !$this->matchPathFormat($edit))
+            ) {
                 $this->response->invalidPath();
                 break;
             }
@@ -206,8 +207,7 @@ class EditController extends Controller {
                 switch ($type) {
                     case 'TRASH':
                         $oldPrefix = $original;
-                        $lessonName = explode('/', $original)[1];
-                        $newPrefix = str_replace("$lessonName/", "$lessonName/__ARCHIVE__/", $original);
+                        $newPrefix = $original;
                         break;
                     case 'MOVE':
                         $oldPrefix = $original;
@@ -226,13 +226,15 @@ class EditController extends Controller {
                     $this->response->storageErr();
                     break;
                 }
-                $filenames = array_map(function ($cur) {
+                $keys = array_map(function ($cur) {
                     return $cur['key'];
                 }, $iterms);
-                // rename them
-                foreach ($filenames as $filename) {
-                    if (self::moveFile($filename, str_replace($oldPrefix, $newPrefix, $filename)) === false) {
-                        self::deleteFile($filename);
+
+                foreach ($keys as $fileKey) {
+                    if ($type === 'TRASH') {
+                        self::deleteFile($fileKey);
+                    } else {
+                        self::moveFile($fileKey, str_replace($oldPrefix, $newPrefix, $fileKey));
                     }
                 }
 
@@ -252,13 +254,16 @@ class EditController extends Controller {
 
     private function matchPathFormat($path) {
         $path = explode('/', $path);
-        if (count($path) < 2) return false;
-        if (!in_array($path[0], array('专业必修课程', '专业选修课程', '公共课程'))) return false;
+        if (count($path) < 2)
+            return false;
+        if (!in_array($path[0], array('专业必修课程', '专业选修课程', '公共课程')))
+            return false;
         $i = 1;
         $symbols = explode(' ', '^ ? : / \\ \' < > ^ * |');
         while ($i < count($path)) {
             foreach ($symbols as $symbol) {
-                if (strpos($path[$i], $symbol) !== false) return false;
+                if (strpos($path[$i], $symbol) !== false)
+                    return false;
             }
             $i++;
         }

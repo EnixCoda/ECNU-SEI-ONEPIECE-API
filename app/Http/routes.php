@@ -11,7 +11,7 @@
 |
 */
 
-$app->get('', function () use($app) {
+$app->get('', function () use ($app) {
     return new \Illuminate\Http\Response(file_get_contents('assets/index.html'));
 });
 

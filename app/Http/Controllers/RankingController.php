@@ -178,7 +178,7 @@ class RankingController extends Controller {
         } while (false);
         return response()->json($this->response);
     }
-    
+
     private function cleanContributor($contri, $pos = NULL) {
         $clean = array(
             'name' => $contri['name'],
@@ -186,7 +186,8 @@ class RankingController extends Controller {
             'rc' => $contri['rcScore'],
             'upload' => $contri['fileScore'] + $contri['uploadScore']
         );
-        if ($pos !== NULL) $clean['pos'] = $pos;
+        if ($pos !== NULL)
+            $clean['pos'] = $pos;
         return $clean;
     }
 }

@@ -42,7 +42,8 @@ class IndexController extends Controller {
             $rates->{$fileId} = $score;
         }
 
-        if (!$records = $reset ? $this->getIndexFromQiniu() : $this->getIndexFromLocal()) return NULL;
+        if (!$records = $reset ? $this->getIndexFromQiniu() : $this->getIndexFromLocal())
+            return NULL;
 
         $queries = [];
         $index = new Dir('ONEPIECE');
@@ -54,12 +55,10 @@ class IndexController extends Controller {
             $filename = array_pop($path);
             $score = isset($rates->{$id}) ? $score = $rates->{$id} : 0;
 
-            // TODO: remove this
-            if (strpos($filename, '申请-') === 0) continue;
-            // TODO: archive bucket
-            if (strpos($key, '__ARCHIVE__') !== false) continue;
-            if (count($path) > 0 && $path[0] === '_log') continue;
-            if (count($path) === 0 && $filename === 'index.html') continue;
+            if (count($path) > 0 && $path[0] === '_log')
+                continue;
+            if (count($path) === 0 && $filename === 'index.html')
+                continue;
 
             // put the file into its position
             // create some folders on the way
@@ -100,7 +99,8 @@ class IndexController extends Controller {
 
     public function getIndexFromQiniu() {
         $records = Qiniu::getList();
-        if (!$records) $this->response->storageErr();
+        if (!$records)
+            $this->response->storageErr();
         $_records = [];
         foreach ($records as $record) {
             array_push($_records, [

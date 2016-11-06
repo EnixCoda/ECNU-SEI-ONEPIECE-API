@@ -13,7 +13,7 @@ class LoginController extends Controller {
     public function main(Request $request) {
         do {
             if ($request->has('id')
-            &&  $request->has('password')
+                && $request->has('password')
             ) {
                 $stuId = $request->input('id');
                 $password = $request->input('password');

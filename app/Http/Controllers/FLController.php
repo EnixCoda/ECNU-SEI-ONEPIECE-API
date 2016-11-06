@@ -277,20 +277,20 @@ class FLController extends Controller {
         return response()->json($this->response);
     }
 
-    private function lengthOverflow($content, $limit)
-    {
-        if (is_string($content)) return $this->utf8StrLen($content) > $limit;
+    private function lengthOverflow($content, $limit) {
+        if (is_string($content))
+            return $this->utf8StrLen($content) > $limit;
         if (is_array($content)) {
             foreach ($content as $text) {
-                if (!is_string($text) || $this->utf8StrLen($text) > $limit) return true;
+                if (!is_string($text) || $this->utf8StrLen($text) > $limit)
+                    return true;
             }
             return false;
         }
         return true;
     }
 
-    private function utf8StrLen($string = NULL)
-    {
+    private function utf8StrLen($string = NULL) {
         preg_match_all("/./us", $string, $match);
         return count($match[0]);
     }
