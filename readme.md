@@ -11,5 +11,5 @@ init:
 0. copy .env.example to .env and edit .env
 0. create empty ONEPIECE.db at /database with sqlite3 manually
 0. install libraries: `> composer install`
-0. run database migrations: `> php artisan migration`
-0. host under `/public`
+0. run database migrations: `> php artisan migrate`
+0. host under `/public`, ready to go
