@@ -56,7 +56,7 @@ class MyResponse {
     }
 
     function setData($data) {
-        $this->data = $data;
+        $this->{'data'} = $data;
         return $this;
     }
 

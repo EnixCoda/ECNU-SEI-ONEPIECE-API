@@ -83,13 +83,6 @@ class Qiniu {
             return false;
         }
 
-        $result = app('db')
-            ->table('file')
-            ->where('key', $from)
-            ->update(['key' => $to]);
-        if ($result === false) {
-            return false;
-        }
         return true;
     }
 

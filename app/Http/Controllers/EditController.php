@@ -84,7 +84,6 @@ class EditController extends Controller {
                 ]);
             if ($validate->fails()) {
                 $this->response->paraErr();
-                $this->response->appendMsg('validator');
                 break;
             }
             $original = $request->input('original');
@@ -104,7 +103,7 @@ class EditController extends Controller {
                 break;
             }
 
-            // check saved operations
+            // check user's submitted operation
             $result = app('db')
                 ->table('edit')
                 ->where([
@@ -162,10 +161,11 @@ class EditController extends Controller {
             }
             $fileId = NULL;
             if ($result !== NULL) {
+                // in case $original may not be a file, $result could be NULL
                 $fileId = $result->{'fileId'};
             }
 
-            // check if is the file's uploader
+            // check if user is the file's uploader
             $isUploaderEditing = false;
             if ($fileId) {
                 $result = app('db')
@@ -196,25 +196,24 @@ class EditController extends Controller {
                 $this->response->databaseErr();
                 break;
             }
+            $count = $result->{'COUNT(stuId)'};
 
             // if admin's operation or requests over limit
-            if ($result->{'COUNT(stuId)'} > env('EDIT_LIMIT')
-                || $isUploaderEditing
+            if ($count > env('EDIT_LIMIT')
                 || $stuId === env('ADMIN_ID')
+                || $isUploaderEditing
             ) {
-                $oldPrefix = '';
+                // replace any $oldPrefix(.*) with $newPrefix$1
+                $oldPrefix = $original;
                 $newPrefix = '';
                 switch ($type) {
                     case 'TRASH':
-                        $oldPrefix = $original;
                         $newPrefix = $original;
                         break;
                     case 'MOVE':
-                        $oldPrefix = $original;
                         $newPrefix = $edit;
                         break;
                     case 'RENAME':
-                        $oldPrefix = $original;
                         $newPrefix = $this->popLastSection($original) . '/' . $edit;
                         break;
                 }
@@ -230,21 +229,36 @@ class EditController extends Controller {
                     return $cur['key'];
                 }, $iterms);
 
-                foreach ($keys as $fileKey) {
-                    if ($type === 'TRASH') {
-                        self::deleteFile($fileKey);
-                    } else {
-                        self::moveFile($fileKey, str_replace($oldPrefix, $newPrefix, $fileKey));
+                if ($type === 'TRASH') {
+                    foreach ($keys as $subjectKey) {
+                        self::deleteFile($subjectKey);
+                    }
+                } else {
+                    foreach ($keys as $subjectKey) {
+                        $targetKey = str_replace($oldPrefix, $newPrefix, $subjectKey);
+                        self::moveFile($subjectKey, $targetKey);
                     }
                 }
 
-                // TODO: remove this edit
-                // TODO: move rest edits
-                // TODO: edit specific records, not resetting the whole table
+                // remove exact the executed edit
+                app('db')
+                    ->table('edit')
+                    ->where([
+                        ['type', $type],
+                        ['edit', $edit],
+                        ['original', $original]
+                    ])
+                    ->delete();
 
                 app('db')
-                    ->table('file')
-                    ->delete();
+                    ->table('edit')
+                    ->where([
+                        ['original', $original]
+                    ])
+                    ->update([
+                        'original' => $newPrefix
+                    ]);
+
                 $this->response->setData(['executed' => true]);
             }
             $this->response->success();
@@ -274,24 +288,43 @@ class EditController extends Controller {
         return join('/', array_slice(explode('/', $path), 0, count(explode('/', $path)) - 1));
     }
 
-    private function shiftFirstSection($path) {
-        return join('/', array_slice(explode('/', $path), 1));
-    }
-
     private function deleteFile($path) {
-        // TODO: move to archive bucket
         if (Qiniu::archive($path)) {
-            return true;
+            $result = app('db')
+                    ->table('file')
+                    ->where([
+                        ['key', $path]
+                    ])
+                    ->delete();
+            if ($result === false) {
+                $this->response->databaseErr();
+            } else {
+                return true;
+            }
+        } else {
+            $this->response->storageErr();
         }
-        $this->response->storageErr();
         return false;
     }
 
     private function moveFile($from, $to) {
         if (Qiniu::move($from, $to)) {
-            return true;
+            $result = app('db')
+                ->table('file')
+                ->where([
+                    ['key', $from]
+                ])
+                ->update([
+                    'key' => $to
+                ]);
+            if ($result === false) {
+                $this->response->databaseErr();
+            } else {
+                return true;
+            }
+        } else {
+            $this->response->storageErr();
         }
-        $this->response->storageErr();
         return false;
     }
 }

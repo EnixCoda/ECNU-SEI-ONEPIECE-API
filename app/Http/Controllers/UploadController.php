@@ -62,7 +62,7 @@ class UploadController extends Controller {
             $stuId = $request->user()->{'stuId'};
 
             $detail = Qiniu::getList($filePath);
-            if ($detail === false) {
+            if (count($detail) === 0 || $detail === false) {
                 $this->response->storageErr();
                 break;
             }
@@ -105,13 +105,13 @@ class UploadController extends Controller {
         $result = app('db')
             ->table('file')
             ->where('key', $key)
-            ->get();
+            ->first();
         if ($result === false) {
             $this->response->databaseErr();
             return false;
         }
 
-        if (count($result) > 0) {
+        if ($result !== NULL) {
             $this->response->fileExist();
             return false;
         }
