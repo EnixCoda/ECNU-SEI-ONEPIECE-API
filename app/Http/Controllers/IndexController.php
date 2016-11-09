@@ -22,7 +22,7 @@ class IndexController extends Controller {
         return response()->json($this->response);
     }
 
-    private function getIndex($reset) {
+    private function getIndex($forcePull) {
         // get rates from database
         // note: impossible to do with join
         $rates = new \stdClass();
@@ -42,7 +42,7 @@ class IndexController extends Controller {
             $rates->{$fileId} = $score;
         }
 
-        if (!$records = $reset ? $this->getIndexFromQiniu() : $this->getIndexFromLocal())
+        if (!$records = $forcePull ? $this->getIndexFromQiniu() : $this->getIndexFromLocal())
             return NULL;
 
         $queries = [];
@@ -78,11 +78,16 @@ class IndexController extends Controller {
             }
             array_push($cur->content, new File($id, $filename, $size, $score));
 
-            if ($reset) {
-                array_push($queries, ['fileId' => $id, 'size' => $size, 'key' => $key, 'created_at' => Carbon::now()]);
+            if ($forcePull) {
+                array_push($queries, [
+                    'fileId' => $id,
+                    'size' => $size,
+                    'key' => $key,
+                    'created_at' => Carbon::now()->setTimezone('PRC')
+                ]);
             }
         }
-        if ($reset) {
+        if ($forcePull) {
             app('db')
                 ->table('file')
                 ->delete();
@@ -122,15 +127,19 @@ class IndexController extends Controller {
             return NULL;
         }
         if ($result === NULL    // no record in local table
-            // TODO // or if last update time is 24 hours ago
+            // or if last update time is 24 hours ago
+            || Carbon::createFromFormat('Y-m-d H:i:s', $result->created_at)->addDay()->lt(Carbon::now())
         ) {
             return $this->getIndexFromQiniu();
         }
 
-        return json_decode(json_encode(
+        // decode & encode does not take too much time, less than 10 ms for 6000 files
+        $fileListArray = json_decode(json_encode(
             app('db')
                 ->table('file')
                 ->get()
         ), true);
+
+        return $fileListArray;
     }
 }

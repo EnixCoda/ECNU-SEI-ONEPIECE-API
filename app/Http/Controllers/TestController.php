@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use Carbon\Carbon;
+use Faker\Provider\cs_CZ\DateTime;
 use Illuminate\Http\Request;
 use Qiniu\Auth;
 use Qiniu\Storage\BucketManager;
@@ -12,7 +14,7 @@ class TestController extends Controller {
     }
 
     public function get(Request $request) {
-        // TODO: input validate with below
+        //        input validate with below
         //        $this->validate($request, [
         //            'aaa' => 'required|exists:user,stuId',
         //            'a' => 'exists:user,stuId',
@@ -42,13 +44,15 @@ class TestController extends Controller {
         //            return 'fail';
         //        }
 
-        $result = app('db')
-            ->table('log')
-            ->orderBy('created_at', 'desc')
-            ->take(50)
-            ->get();
 
-        $this->response->setData($result);
+        $file = app('db')
+            ->table('file')
+            ->first();
+        var_dump($file->created_at);
+        $createdAt = Carbon::createFromFormat('Y-m-d H:i:s', $file->created_at);
+
+        var_dump($createdAt->addMonth()->lt(Carbon::now()));
+
         return response()->json($this->response);
     }
 }

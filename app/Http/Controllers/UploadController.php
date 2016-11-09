@@ -92,7 +92,7 @@ class UploadController extends Controller {
             ->insert([
                 'fileId' => $detail['hash'],
                 'stuId' => $stuId,
-                'created_at' => Carbon::now()
+                'created_at' => Carbon::now()->setTimezone('PRC')
             ]);
         if ($result === false) {
             $this->response->databaseErr();
@@ -122,7 +122,7 @@ class UploadController extends Controller {
                 'fileId' => $detail['hash'],
                 'size' => $detail['fsize'],
                 'key' => $key,
-                'created_at' => Carbon::now()
+                'created_at' => Carbon::now()->setTimezone('PRC')
             ]);
         if ($result === false) {
             $this->response->databaseErr();

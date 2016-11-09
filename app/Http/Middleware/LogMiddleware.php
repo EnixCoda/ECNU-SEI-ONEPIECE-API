@@ -32,7 +32,7 @@ class LogMiddleware {
             ->insert([
                 "stuId" => $stuId,
                 "action" => $action,
-                "created_at" => Carbon::now()
+                "created_at" => Carbon::now()->setTimezone('PRC')
             ]);
         return $next($request);
     }

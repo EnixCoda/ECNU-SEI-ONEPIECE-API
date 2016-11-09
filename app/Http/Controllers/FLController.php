@@ -196,7 +196,7 @@ class FLController extends Controller {
                                 "type" => $type,
                                 "key" => $key,
                                 "score" => $score,
-                                "created_at" => Carbon::now()
+                                "created_at" => Carbon::now()->setTimezone('PRC')
                             ]);
                         if ($result === false) {
                             $this->response->databaseErr();
@@ -208,7 +208,7 @@ class FLController extends Controller {
                             ->table('score')
                             ->update([
                                 "score" => $score,
-                                "updated_at" => Carbon::now()
+                                "updated_at" => Carbon::now()->setTimezone('PRC')
                             ]);
                         if ($result === false) {
                             $this->response->databaseErr();
@@ -252,7 +252,7 @@ class FLController extends Controller {
                         "username" => $username,
                         "type" => $type,
                         "key" => $key,
-                        "created_at" => Carbon::now()
+                        "created_at" => Carbon::now()->setTimezone('PRC')
                     ]);
                 if ($result === false) {
                     $this->response->databaseErr();

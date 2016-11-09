@@ -50,7 +50,7 @@ class LoginController extends Controller {
                             'cademy' => $cademy,
                             'token' => $token,
                             'lastAlia' => $username,
-                            'created_at' => Carbon::now()
+                            'created_at' => Carbon::now()->setTimezone('PRC')
                         ]);
                     if ($result === false) {
                         $this->response->databaseErr();
@@ -64,7 +64,7 @@ class LoginController extends Controller {
                         ->update([
                             'password' => $password,
                             'token' => $token,
-                            'updated_at' => Carbon::now()
+                            'updated_at' => Carbon::now()->setTimezone('PRC')
                         ]);
                     if ($result === false) {
                         $this->response->databaseErr();
@@ -93,7 +93,7 @@ class LoginController extends Controller {
                     ->where('stuId', $stuId)
                     ->update([
                         'token' => $token,
-                        'updated_at' => Carbon::now()
+                        'updated_at' => Carbon::now()->setTimezone('PRC')
                     ]);
                 if ($result === false) {
                     $this->response->databaseErr();
