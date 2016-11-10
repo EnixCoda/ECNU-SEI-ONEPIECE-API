@@ -289,9 +289,22 @@ class EditController extends Controller {
     }
 
     private function deleteFile($path) {
+        // file-level operation
         if (Qiniu::archive($path)) {
             $result = app('db')
                     ->table('file')
+                    ->where([
+                        ['key', $path]
+                    ])
+                    ->delete()
+                && app('db')
+                    ->table('comment')
+                    ->where([
+                        ['key', $path]
+                    ])
+                    ->delete()
+                && app('db')
+                    ->table('score')
                     ->where([
                         ['key', $path]
                     ])
@@ -308,15 +321,32 @@ class EditController extends Controller {
     }
 
     private function moveFile($from, $to) {
+        // file-level operation
         if (Qiniu::move($from, $to)) {
             $result = app('db')
-                ->table('file')
-                ->where([
-                    ['key', $from]
-                ])
-                ->update([
-                    'key' => $to
-                ]);
+                    ->table('file')
+                    ->where([
+                        ['key', $from]
+                    ])
+                    ->update([
+                        'key' => $to
+                    ])
+                && app('db')
+                    ->table('comment')
+                    ->where([
+                        ['key', $from]
+                    ])
+                    ->update([
+                        'key' => $to
+                    ])
+                && app('db')
+                    ->table('score')
+                    ->where([
+                        ['key', $from]
+                    ])
+                    ->update([
+                        'key' => $to
+                    ]);
             if ($result === false) {
                 $this->response->databaseErr();
             } else {
