@@ -62,7 +62,7 @@ class UploadController extends Controller {
             $stuId = $request->user()->{'stuId'};
 
             $detail = Qiniu::getList($filePath);
-            if (count($detail) === 0 || $detail === false) {
+            if ($detail === false || count($detail) !== 1) {
                 $this->response->storageErr();
                 break;
             }
@@ -104,7 +104,7 @@ class UploadController extends Controller {
     private function addFileToTableFile($detail, $key) {
         $result = app('db')
             ->table('file')
-            ->where('key', $key)
+            ->where(['key', $key])
             ->first();
         if ($result === false) {
             $this->response->databaseErr();
