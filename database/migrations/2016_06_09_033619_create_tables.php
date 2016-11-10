@@ -82,5 +82,6 @@ class CreateTables extends Migration
         Schema::drop('edit');
         Schema::drop('comment');
         Schema::drop('score');
+        Schema::drop('file');
     }
 }
