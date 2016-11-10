@@ -40,7 +40,8 @@ class FLController extends Controller {
                     break;
                 }
                 $tableName = "comment";
-                $result = app('db')->table($tableName)
+                $result = app('db')
+                    ->table($tableName)
                     ->select('username', 'comment')
                     ->where([
                         ['key', $key]
