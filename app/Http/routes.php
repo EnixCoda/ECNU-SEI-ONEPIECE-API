@@ -20,6 +20,11 @@ $app->get('test', [
     'uses' => 'TestController@get'
 ]);
 
+$app->get('look', [
+    'middleware' => ['auth'],
+    'uses' => 'LookController@get'
+]);
+
 $app->get('index', [
     'uses' => 'IndexController@get'
 ]);
