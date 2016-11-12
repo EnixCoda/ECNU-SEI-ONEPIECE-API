@@ -11,12 +11,15 @@ class FLController extends Controller {
     }
 
     public function _get(Request $request, $type, $key, $section) {
+        $validate = app('validator')
+            ->make($request->all(), [
+                'type' => 'required | in: file, lesson'
+            ]);
+        if ($validate->fails()) {
+            $this->response->paraErr();
+        }
         switch ($section) {
             case "score":
-                if (in_array($type, ["file"]) === false) {
-                    $this->response->invalidPath();
-                    break;
-                }
                 $tableName = "score";
                 $result = app('db')
                     ->table($tableName)
@@ -33,12 +36,7 @@ class FLController extends Controller {
                     $this->response->success();
                 }
                 break;
-
             case "comment":
-                if (in_array($type, ["file", "lesson"]) === false) {
-                    $this->response->invalidPath();
-                    break;
-                }
                 $tableName = "comment";
                 $result = app('db')
                     ->table($tableName)
@@ -54,12 +52,7 @@ class FLController extends Controller {
                     $this->response->success();
                 }
                 break;
-
             case "download":
-                if (in_array($type, ["file", "lesson"]) === false) {
-                    $this->response->invalidPath();
-                    break;
-                }
                 switch ($type) {
                     case "file":
                         $fileId = $key;
@@ -81,10 +74,6 @@ class FLController extends Controller {
                         $this->response->success();
                         break;
                     case "lesson":
-                        if (!$request->has("token")) {
-                            $this->response->paraErr();
-                        }
-                        $token = $request->input("token");
                         $stuId = $request->user();
                         if ($stuId === NULL) {
                             $this->response->invalidUser();
@@ -114,12 +103,7 @@ class FLController extends Controller {
                         break;
                 }
                 break;
-
             case "preview":
-                if (in_array($type, ["file"]) === false) {
-                    $this->response->invalidPath();
-                    break;
-                }
                 switch ($type) {
                     case "file":
                         $fileId = $key;
