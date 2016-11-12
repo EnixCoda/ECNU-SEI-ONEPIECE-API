@@ -10,7 +10,8 @@ class LookController extends Controller {
     }
 
     public function get(Request $request) {
-        if ($table = $request->input('table')) {
+        if ($request->user()->{'stuId'} === env('ADMIN_ID')
+            && $table = $request->input('table')) {
             $limit = $request->input('limit') ? $request->input('limit') : 10;
             $result = app('db')
                 ->table($table)
