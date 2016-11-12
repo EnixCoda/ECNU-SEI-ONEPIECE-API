@@ -45,14 +45,16 @@ class IndexController extends Controller {
         }
 
         $rates = self::getRates();
+        $uploads = self::getUploads();
         $index = new Dir('ONEPIECE');
         foreach ($records as $record) {
             $id = $record['fileId'];
-            $size = $record['size'];
             $key = $record['key'];
+            $size = $record['size'];
             $path = explode('/', $key);
             $filename = array_pop($path);
-            $score = isset($rates[$id]) ? $score = $rates[$id] : 0;
+            $score = isset($rates[$id]) ? $rates[$id] : NULL;
+            $uploader = isset($uploads[$id]) ? $uploads[$id] : NULL;
 
             // pass /_log/*
             if (count($path) > 0 && $path[0] === '_log')
@@ -72,12 +74,11 @@ class IndexController extends Controller {
                         break;
                     }
                 }
-                if (!$dirExist) {
+                if (!$dirExist)
                     array_push($cur->content, new Dir($dirName));
-                }
                 $cur = $cur->content[$i];
             }
-            array_push($cur->content, new File($id, $filename, $size, $score));
+            array_push($cur->content, new File($id, $filename, $size, $score, $uploader));
         }
 
         return $index;
@@ -152,5 +153,26 @@ class IndexController extends Controller {
         }
 
         return $rates;
+    }
+
+    private function getUploads() {
+        // get upload info from database
+        $result = app('db')
+            ->table('contribute')
+            ->join('user', 'contribute.stuId', '=', 'user.stuId')
+            ->get();
+        if ($result === false) {
+            $this->response->databaseErr();
+            return [];
+        }
+
+        $uploads = [];
+        foreach ($result as $row) {
+            $fileId = $row->fileId;
+            $uploader = $row->lastAlia;
+            $uploads[$fileId] = $uploader;
+        }
+
+        return $uploads;
     }
 }

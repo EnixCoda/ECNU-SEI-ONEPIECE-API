@@ -347,6 +347,7 @@ class EditController extends Controller {
                     ->update([
                         'key' => $to
                     ]);
+                // 不需要修改 contribute 表，该因表记录的是fileId
             if ($result === false) {
                 $this->response->databaseErr();
             } else {
