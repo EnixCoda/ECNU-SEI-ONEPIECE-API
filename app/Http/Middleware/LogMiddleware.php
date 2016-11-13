@@ -15,16 +15,10 @@ class LogMiddleware {
      * @return mixed
      */
     public function handle(Request $request, Closure $next) {
-        $stuId = "-";
-        if (isset($request->cookie()['token'])) {
-            $token = $request->cookie()['token'];
-            $stu = app('db')
-                ->table('user')
-                ->where([
-                    ['token', $token]
-                ])
-                ->first();
-            $stuId = $stu->stuId;
+        if ($request->user()) {
+            $stuId = $request->user()->stuId;
+        } else {
+            $stuId = join(", ", $request->ips());
         }
         $action = $this->parseAction($request);
         app('db')

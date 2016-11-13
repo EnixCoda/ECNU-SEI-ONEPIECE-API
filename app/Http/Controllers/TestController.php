@@ -44,14 +44,7 @@ class TestController extends Controller {
         //            return 'fail';
         //        }
 
-
-        $file = app('db')
-            ->table('file')
-            ->first();
-        var_dump($file->created_at);
-        $createdAt = Carbon::createFromFormat('Y-m-d H:i:s', $file->created_at);
-
-        var_dump($createdAt->addMonth()->lt(Carbon::now()));
+        $this->response->cusMsg($request->ips());
 
         return response()->json($this->response);
     }
