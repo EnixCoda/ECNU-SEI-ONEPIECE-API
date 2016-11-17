@@ -86,8 +86,6 @@ class LoginController extends Controller {
                     break;
                 }
                 $stuId = $result->stuId;
-                $username = $result->username;
-                $cademy = $result->cademy;
                 $result = app('db')
                     ->table('user')
                     ->where('stuId', $stuId)
@@ -104,19 +102,18 @@ class LoginController extends Controller {
                 break;
             }
 
+            $user = app('db')
+                ->table('user')
+                ->where('stuId', $stuId)
+                ->first();
+
             $this->response->setData([
-                'username' => $username,
-                'cademy' => $cademy,
-                'token' => $token,
+                'username' => $user->username,
+                'token' => $user->token,
+                'alia' => $user->lastAlia
             ]);
             $this->response->success();
-            // in case some people's info were not updated
-            if ($cademy === '学院') {
-                $cademy = '';
-            } else {
-                $cademy .= '的';
-            }
-            $this->response->cusMsg('欢迎！' . $cademy . $username . '。');
+            $this->response->cusMsg('欢迎！' . $user->lastAlia);
         } while (false);
 
         return response()->json($this->response);
