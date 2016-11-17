@@ -40,7 +40,7 @@ class FLController extends Controller {
                 $tableName = "comment";
                 $result = app('db')
                     ->table($tableName)
-                    ->select('username', 'comment')
+                    ->select('username', 'comment', 'created_at as time')
                     ->where([
                         ['key', $key]
                     ])
@@ -48,6 +48,10 @@ class FLController extends Controller {
                 if ($result === false) {
                     $this->response->databaseErr();
                 } else {
+                    // yyyy-mm-dd hh:mm:ii >> yyyy-mm-dd
+                    foreach ($result as &$comment) {
+                        $comment->time = explode(" ", $comment->time)[0];
+                    }
                     $this->response->setData(["comments" => $result]);
                     $this->response->success();
                 }
