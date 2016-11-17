@@ -55,6 +55,11 @@ class FLController extends Controller {
             case "download":
                 switch ($type) {
                     case "file":
+                        $user = $request->user();
+                        if ($user === NULL) {
+                            $this->response->invalidUser();
+                            break;
+                        }
                         $fileId = $key;
                         $result = app('db')
                             ->table('file')
@@ -74,8 +79,8 @@ class FLController extends Controller {
                         $this->response->success();
                         break;
                     case "lesson":
-                        $stuId = $request->user();
-                        if ($stuId === NULL) {
+                        $user = $request->user();
+                        if ($user === NULL) {
                             $this->response->invalidUser();
                             break;
                         }
@@ -104,6 +109,11 @@ class FLController extends Controller {
                 }
                 break;
             case "preview":
+                $user = $request->user();
+                if ($user === NULL) {
+                    $this->response->invalidUser();
+                    break;
+                }
                 switch ($type) {
                     case "file":
                         $fileId = $key;
@@ -119,15 +129,26 @@ class FLController extends Controller {
                             $this->response->fileNotExist();
                             break;
                         }
-                        $key = $result->{"key"};
-                        $filename = array_slice(explode("/", $key), -1)[0];
-                        $explodedFilename = explode(".", $filename);
+                        $key = $result->{'key'};
+                        $filename = array_slice(explode('/', $key), -1)[0];
+                        $explodedFilename = explode('.', $filename);
                         $fileExtensionName = array_pop($explodedFilename);
-                        if (!in_array(strtolower($fileExtensionName), ["jpg", "bmp", "gif", "png", "pdf", "txt"])) {
-                            $this->response->cusMsg("不可预览的文件类型");
+                        $imagePreview = in_array(strtolower($fileExtensionName), ['jpg', 'jpeg', 'bmp', 'png']);
+                        $docPreview = in_array(strtolower($fileExtensionName), ['pdf', 'doc', 'docx', 'ppt', 'pptx']);
+                        if (!$imagePreview && !$docPreview) {
+                            $this->response->cusMsg('不可预览的文件类型');
                             break;
                         }
-                        $this->response->setData(["previewLink" => env("QINIU_SPACE_DOMAIN") . rawurlencode($key)]);
+                        if ($imagePreview) {
+                            $this->response->setData([
+                                'previewLink' => env('QINIU_SPACE_DOMAIN') . rawurlencode($key) . '?imageView2/2/w/600/interlace/1'
+                            ]);
+                        } else {
+                            $this->response->setData([
+                                'previewLink' => env('QINIU_SPACE_DOMAIN') . rawurlencode($key) . '?yifangyun_preview/v2/action=get_preview/format=jpg/page_number=1',
+                                'multiPage' => true
+                            ]);
+                        }
                         $this->response->success();
                         break;
                     default:
