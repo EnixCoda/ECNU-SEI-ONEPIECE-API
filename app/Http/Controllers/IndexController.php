@@ -25,8 +25,9 @@ class IndexController extends Controller {
     private function getIndex($forcePull) {
         $reset = $forcePull || self::needReset();
 
-        if (!$records = $reset ? $this->getIndexFromQiniu() : $this->getIndexFromLocal())
-            return NULL;
+        $records;
+        if ($reset) $records = $this->getIndexFromQiniu();
+        if (!$reset || !$records) $records = $this->getIndexFromLocal();
 
         if ($reset) {
             app('db')
@@ -109,15 +110,18 @@ class IndexController extends Controller {
 
     private function getIndexFromQiniu() {
         $records = Qiniu::getList();
-        if (!$records)
-            $this->response->storageErr();
-        $fileListArray = array_map(function ($record) {
-            return [
-                'fileId' => $record['hash'],
-                'size' => $record['fsize'],
-                'key' => $record['key']
-            ];
-        }, $records);
+        if ($records === NULL)
+            // $this->response->storageErr();
+            return NULL;
+        else {
+            $fileListArray = array_map(function ($record) {
+                return [
+                    'fileId' => $record['hash'],
+                    'size' => $record['fsize'],
+                    'key' => $record['key']
+                ];
+            }, $records);
+        }
         return $fileListArray;
     }
 
