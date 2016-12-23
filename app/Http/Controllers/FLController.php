@@ -101,7 +101,6 @@ class FLController extends Controller {
                                 ]);
                         }
                         $query = http_build_query([
-                            "token" => $token,
                             "confirmed" => "1"
                         ]);
                         $this->response->setData(["link" => $request->url() . "?" . $query]);
