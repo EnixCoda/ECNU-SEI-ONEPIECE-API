@@ -215,6 +215,10 @@ class FLController extends Controller {
                     } else {
                         $result = app('db')
                             ->table('score')
+                            ->where([
+                                ['stuId', $stuId],
+                                ['key', $key]
+                            ])
                             ->update([
                                 "score" => $score,
                                 "updated_at" => Carbon::now()->setTimezone('PRC')
