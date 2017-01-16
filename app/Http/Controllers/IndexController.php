@@ -47,6 +47,7 @@ class IndexController extends Controller {
 
         $rates = self::getRates();
         $uploads = self::getUploads();
+        $downloads = self::getDownloads();
         $index = new Dir('ONEPIECE');
         foreach ($records as $record) {
             $id = $record['fileId'];
@@ -56,6 +57,7 @@ class IndexController extends Controller {
             $filename = array_pop($path);
             $score = isset($rates[$id]) ? $rates[$id] : NULL;
             $uploader = isset($uploads[$id]) ? $uploads[$id] : NULL;
+            $download = isset($downloads[$id]) ? $downloads[$id] : NULL;
 
             // pass /_log/*
             if (count($path) > 0 && $path[0] === '_log')
@@ -79,7 +81,7 @@ class IndexController extends Controller {
                     array_push($cur->content, new Dir($dirName));
                 $cur = $cur->content[$i];
             }
-            array_push($cur->content, new File($id, $filename, $size, $score, $uploader));
+            array_push($cur->content, new File($id, $filename, $size, $score, $uploader, $download));
         }
 
         return $index;
@@ -142,7 +144,7 @@ class IndexController extends Controller {
         $rates = [];
         $result = app('db')
             ->table('score')
-            ->select(app('db')->raw('key, SUM(score)'))
+            ->select(app('db')->raw('key, SUM(score) as totalScore'))
             ->groupBy('key')
             ->get();
         if ($result === false) {
@@ -152,7 +154,7 @@ class IndexController extends Controller {
 
         foreach ($result as $row) {
             $fileId = $row->key;
-            $score = $row->{'SUM(score)'};
+            $score = $row->totalScore;
             $rates[$fileId] = $score;
         }
 
@@ -178,5 +180,28 @@ class IndexController extends Controller {
         }
 
         return $uploads;
+    }
+
+    private function getDownloads() {
+        // get download info from database
+        $result = app('db')
+            ->table('log')
+            ->select(app('db')->raw('action, count(*) as count'))
+            ->where('action', 'like', '%file%download%')
+            ->groupBy('action')
+            ->get();
+        if ($result === false) {
+            $this->response->databaseErr();
+            return [];
+        }
+
+        $downloads = [];
+        foreach ($result as $row) {
+            $fileId = str_replace('{"method":"GET","path":"file\\/', '', str_replace('\\/download","input":[]}', '', $row->action));
+            $count = (int)$row->count;
+            $downloads[$fileId] = $count;
+        }
+
+        return $downloads;
     }
 }
