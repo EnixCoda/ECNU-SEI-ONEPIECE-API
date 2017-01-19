@@ -16,4 +16,8 @@ class LessonController extends FLController {
     public function set(Request $request, $lessonName, $section) {
         return parent::_set($request, 'lesson', $lessonName, $section);
     }
+
+    public function remove(Request $request, $lessonName, $section) {
+        return parent::_remove($request, 'lesson', $lessonName, $section);
+    }
 }

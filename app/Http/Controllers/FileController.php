@@ -16,4 +16,8 @@ class FileController extends FLController {
     public function set(Request $request, $fileId, $section) {
         return parent::_set($request, 'file', $fileId, $section);
     }
+
+    public function remove(Request $request, $fileId, $section) {
+        return parent::_remove($request, 'file', $fileId, $section);
+    }
 }

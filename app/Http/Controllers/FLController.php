@@ -18,9 +18,10 @@ class FLController extends Controller {
         if ($validate->fails()) {
             $this->response->paraErr();
         }
+        $stuId = $request->user() ? $request->user()->{'stuId'} : '';
         switch ($section) {
-            case "score":
-                $tableName = "score";
+            case 'score':
+                $tableName = 'score';
                 $result = app('db')
                     ->table($tableName)
                     ->select(app('db')->raw('SUM(score)'))
@@ -32,15 +33,15 @@ class FLController extends Controller {
                     $this->response->databaseErr();
                 } else {
                     $score = $result->{'SUM(score)'} === NULL ? 0 : $result->{'SUM(score)'};
-                    $this->response->setData(["total_score" => $score]);
+                    $this->response->setData(['total_score' => $score]);
                     $this->response->success();
                 }
                 break;
-            case "comment":
-                $tableName = "comment";
+            case 'comment':
+                $tableName = 'comment';
                 $result = app('db')
                     ->table($tableName)
-                    ->select('username', 'comment', 'created_at as time')
+                    ->select('id', 'username', 'stuId', 'comment', 'created_at as time')
                     ->where([
                         ['key', $key]
                     ])
@@ -50,15 +51,21 @@ class FLController extends Controller {
                 } else {
                     // yyyy-mm-dd hh:mm:ii >> yyyy-mm-dd
                     foreach ($result as &$comment) {
-                        $comment->time = explode(" ", $comment->time)[0];
+                        $comment->time = explode(' ', $comment->time)[0];
+                        if ($comment->stuId === $stuId || $stuId === env('ADMIN_ID')) {
+                            $comment->removable = true;
+                        } else {
+                            unset($comment->id);
+                        }
+                        unset($comment->stuId);
                     }
-                    $this->response->setData(["comments" => $result]);
+                    $this->response->setData(['comments' => $result]);
                     $this->response->success();
                 }
                 break;
-            case "download":
+            case 'download':
                 switch ($type) {
-                    case "file":
+                    case 'file':
                         $user = $request->user();
                         if ($user === NULL) {
                             $this->response->invalidUser();
@@ -77,33 +84,33 @@ class FLController extends Controller {
                             $this->response->fileNotExist();
                             break;
                         }
-                        $key = $result->{"key"};
-                        $filename = array_slice(explode("/", $key), -1)[0];
-                        $this->response->setData(["downloadLink" => env("QINIU_SPACE_DOMAIN") . rawurlencode($key) . "?attname=$filename"]);
+                        $key = $result->{'key'};
+                        $filename = array_slice(explode('/', $key), -1)[0];
+                        $this->response->setData(['downloadLink' => env('QINIU_SPACE_DOMAIN') . rawurlencode($key) . '?attname=$filename']);
                         $this->response->success();
                         break;
-                    case "lesson":
+                    case 'lesson':
                         $user = $request->user();
                         if ($user === NULL) {
                             $this->response->invalidUser();
                             break;
                         }
                         $lessonName = rawurldecode($key);
-                        if (!file_exists(env("ARCHIVE_ROOT") . $lessonName . ".zip")) {
+                        if (!file_exists(env('ARCHIVE_ROOT') . $lessonName . '.zip')) {
                             $this->response->fileNotExist();
                             break;
                         }
-                        if ($request->has("confirmed")) {
-                            return response()->download(env("ARCHIVE_ROOT") . $lessonName . ".zip",
-                                $lessonName . ".zip",
+                        if ($request->has('confirmed')) {
+                            return response()->download(env('ARCHIVE_ROOT') . $lessonName . '.zip',
+                                $lessonName . '.zip',
                                 [
-                                    "Content-type" => "application/octet-stream;"
+                                    'Content-type' => 'application/octet-stream;'
                                 ]);
                         }
                         $query = http_build_query([
-                            "confirmed" => "1"
+                            'confirmed' => '1'
                         ]);
-                        $this->response->setData(["link" => $request->url() . "?" . $query]);
+                        $this->response->setData(['link' => $request->url() . '?' . $query]);
                         $this->response->success();
                         break;
                     default:
@@ -111,14 +118,14 @@ class FLController extends Controller {
                         break;
                 }
                 break;
-            case "preview":
+            case 'preview':
                 $user = $request->user();
                 if ($user === NULL) {
                     $this->response->invalidUser();
                     break;
                 }
                 switch ($type) {
-                    case "file":
+                    case 'file':
                         $fileId = $key;
                         $result = app('db')
                             ->table('file')
@@ -169,8 +176,8 @@ class FLController extends Controller {
     public function _set(Request $request, $type, $key, $section) {
         $stuId = $request->user()->stuId;
         switch ($section) {
-            case "score":
-                if (in_array($type, ["file"]) === false) {
+            case 'score':
+                if (in_array($type, ['file']) === false) {
                     $this->response->invalidPath();
                     break;
                 }
@@ -183,8 +190,8 @@ class FLController extends Controller {
                     break;
                 }
 
-                $score = $request->input("score") < 0 ? -2 : 1;
-                $tableName = "score";
+                $score = $request->input('score') < 0 ? -2 : 1;
+                $tableName = 'score';
                 $result = app('db')
                     ->table($tableName)
                     ->select('score')
@@ -201,11 +208,11 @@ class FLController extends Controller {
                         $result = app('db')
                             ->table('score')
                             ->insert([
-                                "stuId" => $stuId,
-                                "type" => $type,
-                                "key" => $key,
-                                "score" => $score,
-                                "created_at" => Carbon::now()->setTimezone('PRC')
+                                'stuId' => $stuId,
+                                'type' => $type,
+                                'key' => $key,
+                                'score' => $score,
+                                'created_at' => Carbon::now()->setTimezone('PRC')
                             ]);
                         if ($result === false) {
                             $this->response->databaseErr();
@@ -220,8 +227,8 @@ class FLController extends Controller {
                                 ['key', $key]
                             ])
                             ->update([
-                                "score" => $score,
-                                "updated_at" => Carbon::now()->setTimezone('PRC')
+                                'score' => $score,
+                                'updated_at' => Carbon::now()->setTimezone('PRC')
                             ]);
                         if ($result === false) {
                             $this->response->databaseErr();
@@ -232,8 +239,8 @@ class FLController extends Controller {
                 }
                 break;
 
-            case "comment":
-                if (in_array($type, ["file", "lesson"]) === false) {
+            case 'comment':
+                if (in_array($type, ['file', 'lesson']) === false) {
                     $this->response->invalidPath();
                     break;
                 }
@@ -247,25 +254,25 @@ class FLController extends Controller {
                     break;
                 }
 
-                $comment = $request->input("comment");
-                $username = $request->input("username");
-                if ($this->lengthOverflow($comment, env("MAX_COMMENT_LENGTH"))
-                    || $this->lengthOverflow($username, env("MAX_USERNAME_LENGTH"))
+                $comment = $request->input('comment');
+                $username = $request->input('username');
+                if ($this->lengthOverflow($comment, env('MAX_COMMENT_LENGTH'))
+                    || $this->lengthOverflow($username, env('MAX_USERNAME_LENGTH'))
                 ) {
                     $this->response->paraErr();
-                    $this->response->appendMsg("length");
+                    $this->response->appendMsg('length');
                     break;
                 }
-                $tableName = "comment";
+                $tableName = 'comment';
                 $result = app('db')
                     ->table($tableName)
                     ->insert([
-                        "stuId" => $stuId,
-                        "comment" => $comment,
-                        "username" => $username,
-                        "type" => $type,
-                        "key" => $key,
-                        "created_at" => Carbon::now()->setTimezone('PRC')
+                        'stuId' => $stuId,
+                        'comment' => $comment,
+                        'username' => $username,
+                        'type' => $type,
+                        'key' => $key,
+                        'created_at' => Carbon::now()->setTimezone('PRC')
                     ]);
                 if ($result === false) {
                     $this->response->databaseErr();
@@ -275,7 +282,7 @@ class FLController extends Controller {
                     ->table('user')
                     ->where('stuId', $stuId)
                     ->update([
-                        "lastAlia" => $username
+                        'lastAlia' => $username
                     ]);
                 if ($result === false) {
                     $this->response->databaseErr();
@@ -288,6 +295,55 @@ class FLController extends Controller {
                 $this->response->invalidPath();
         }
         return response()->json($this->response);
+    }
+
+    public function _remove(Request $request, $type, $key, $section) {
+        $stuId = $request->user()->stuId;
+        switch ($section) {
+            case 'comment':
+                if (in_array($type, ['file', 'lesson']) === false) {
+                    $this->response->invalidPath();
+                    break;
+                }
+                $validate = app('validator')
+                    ->make($request->all(), [
+                        'id' => 'required|integer'
+                    ]);
+                if ($validate->fails()) {
+                    $this->response->paraErr();
+                    break;
+                }
+
+                $id = $request->input('id');
+                $tableName = 'comment';
+                if ($stuId === env('ADMIN_ID')) {
+                    $result = app('db')
+                        ->table($tableName)
+                        ->where([
+                            ['id', $id]
+                        ])
+                        ->delete();
+                } else {
+                    $result = app('db')
+                        ->table($tableName)
+                        ->where([
+                            ['id', $id],
+                            ['stuId', $stuId]
+                        ])
+                        ->delete();
+                }
+                if ($result === false) {
+                    $this->response->databaseErr();
+                    break;
+                }
+                $this->response->success();
+                break;
+
+            default:
+                $this->response->invalidPath();
+        }
+        return response()->json($this->response);
+
     }
 
     private function lengthOverflow($content, $limit) {
@@ -304,7 +360,7 @@ class FLController extends Controller {
     }
 
     private function utf8StrLen($string = NULL) {
-        preg_match_all("/./us", $string, $match);
+        preg_match_all('/./us', $string, $match);
         return count($match[0]);
     }
 }

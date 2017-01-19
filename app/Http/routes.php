@@ -44,6 +44,12 @@ $app->post('file/{fileId}/{section}', [
     'uses' => 'FileController@set'
 ]);
 
+$app->delete('file/{fileId}/{section}', [
+    'as' => 'opFile',
+    'middleware' => ['auth'],
+    'uses' => 'FileController@remove'
+]);
+
 $app->get('lesson/{lessonName}/{section}', [
     'as' => 'getLesson',
     'uses' => 'LessonController@get'
@@ -53,6 +59,12 @@ $app->post('lesson/{lessonName}/{section}', [
     'as' => 'opLesson',
     'middleware' => ['auth'],
     'uses' => 'LessonController@set'
+]);
+
+$app->delete('lesson/{lessonName}/{section}', [
+    'as' => 'opLesson',
+    'middleware' => ['auth'],
+    'uses' => 'LessonController@remove'
 ]);
 
 $app->get('uploadToken', [
