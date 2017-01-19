@@ -18,24 +18,24 @@ class LogMiddleware {
         if ($request->user()) {
             $stuId = $request->user()->stuId;
         } else {
-            $stuId = join(", ", $request->ips());
+            $stuId = join(', ', $request->ips());
         }
         $action = $this->parseAction($request);
         app('db')
             ->table('log')
             ->insert([
-                "stuId" => $stuId,
-                "action" => $action,
-                "created_at" => Carbon::now()->setTimezone('PRC')
+                'stuId' => $stuId,
+                'action' => $action,
+                'created_at' => Carbon::now()->setTimezone('PRC')
             ]);
         return $next($request);
     }
 
     private function parseAction(Request $request) {
         return json_encode([
-            "method" => $request->method(),
-            "path" => $request->path(),
-            "input" => $request->all()
+            'method' => $request->method(),
+            'path' => $request->path(),
+            'input' => $request->all()
         ]);
     }
 }

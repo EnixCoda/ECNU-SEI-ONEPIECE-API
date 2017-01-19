@@ -8,7 +8,7 @@ class Contributor {
         $this->rateScore = 0;    // scores of rating & commenting file
         $this->commentScore = 0; // scores of rating & commenting file
         $this->fileScore = 0;    // scores of his files
-        $this->name = "匿名";
+        $this->name = '匿名';
     }
 
     public function setUploadScore($score) {

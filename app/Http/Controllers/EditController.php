@@ -20,7 +20,7 @@ class EditController extends Controller {
                 $this->response->paraErr();
                 break;
             }
-            $path = $request->input("path");
+            $path = $request->input('path');
 
             // check saved operations
             $result = app('db')
@@ -67,7 +67,7 @@ class EditController extends Controller {
             $edits['RENAME'] = $editsRenameArr;
             $edits['LIMIT'] = env('EDIT_LIMIT');
 
-            $this->response->setData(["edits" => $edits]);
+            $this->response->setData(['edits' => $edits]);
             $this->response->success();
         } while (false);
 

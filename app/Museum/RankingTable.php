@@ -11,16 +11,16 @@ class RankingTable {
         if (!isset($this->table->{$stuId}))
             $this->table->{$stuId} = new Contributor();
         switch ($type) {
-            case "UPLOAD":
+            case 'UPLOAD':
                 $this->table->{$stuId}->setUploadScore($score);
                 break;
-            case "RATE":
+            case 'RATE':
                 $this->table->{$stuId}->setRateScore($score);
                 break;
-            case "COMMENT":
+            case 'COMMENT':
                 $this->table->{$stuId}->setCommentScore($score);
                 break;
-            case "FILE":
+            case 'FILE':
                 $this->table->{$stuId}->setFileScore($score);
                 break;
             default:
@@ -50,11 +50,11 @@ class RankingTable {
         $table = json_decode(json_encode($this->table), true);
         $sorted = array();
         foreach ($table as $stuId => $scores) {
-            $scores["totalScore"] = $scores["uploadScore"] + $scores["rateScore"] + $scores["commentScore"] + $scores["fileScore"];
-            $scores["rcScore"] = $scores["rateScore"] + $scores["commentScore"];
+            $scores['totalScore'] = $scores['uploadScore'] + $scores['rateScore'] + $scores['commentScore'] + $scores['fileScore'];
+            $scores['rcScore'] = $scores['rateScore'] + $scores['commentScore'];
 
             $i = 0;
-            while ($i < count($sorted) && $scores["totalScore"] < $sorted[$i]["totalScore"]) {
+            while ($i < count($sorted) && $scores['totalScore'] < $sorted[$i]['totalScore']) {
                 $i++;
             }
             array_splice($sorted, $i, 0, array($stuId => $scores));
