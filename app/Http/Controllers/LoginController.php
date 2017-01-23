@@ -109,9 +109,10 @@ class LoginController extends Controller {
 
             $this->response->setData([
                 'username' => $user->username,
-                'token' => $user->token,
                 'alia' => $user->lastAlia
             ]);
+
+            setcookie('token', $user->token, 2147483647);
             $this->response->success();
             $this->response->cusMsg('欢迎！' . $user->lastAlia);
         } while (false);
