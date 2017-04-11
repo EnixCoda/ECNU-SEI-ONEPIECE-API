@@ -86,7 +86,7 @@ class FLController extends Controller {
                         }
                         $key = $result->{'key'};
                         $filename = array_slice(explode('/', $key), -1)[0];
-                        $this->response->setData(['downloadLink' => env('QINIU_SPACE_DOMAIN') . rawurlencode($key) . '?attname=' . $filename]);
+                        $this->response->setData(['downloadLink' => env('QINIU_PROXY') . rawurlencode($key) . '?attname=' . $filename]);
                         $this->response->success();
                         break;
                     case 'lesson':
@@ -151,11 +151,11 @@ class FLController extends Controller {
                         }
                         if ($imagePreview) {
                             $this->response->setData([
-                                'previewLink' => env('QINIU_SPACE_DOMAIN') . rawurlencode($key) . '?imageView2/2/w/600/interlace/1'
+                                'previewLink' => env('QINIU_PROXY') . rawurlencode($key) . '?imageView2/2/w/600/interlace/1'
                             ]);
                         } else {
                             $this->response->setData([
-                                'previewLink' => env('QINIU_SPACE_DOMAIN') . rawurlencode($key) . '?yifangyun_preview/v2/action=get_preview/format=jpg/page_number=1',
+                                'previewLink' => env('QINIU_PROXY') . rawurlencode($key) . '?yifangyun_preview/v2/action=get_preview/format=jpg/page_number=1',
                                 'multiPage' => true
                             ]);
                         }
