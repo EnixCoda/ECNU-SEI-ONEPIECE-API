@@ -2,6 +2,8 @@ vendor
 .idea
 .env
 .DS_Store
-ARCHIVES
 ONEPIECE.db
-public/assets/*
+ARCHIVES/
+public/assets/
+public/manifest.json
+public/service-worker.js
