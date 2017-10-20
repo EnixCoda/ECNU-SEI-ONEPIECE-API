@@ -148,10 +148,11 @@ class LoginController extends Controller {
                 'header' => 'Content-type: application/x-www-form-urlencoded\r\n',
                 'method' => 'POST',
                 'content' => http_build_query($data),
+                'timeout' => 10,
             ),
         );
         $context = stream_context_create($options);
-        $result = file_get_contents($loginUrl, false, $context);
+        $result = @file_get_contents($loginUrl, false, $context);
         return $result;
     }
 
