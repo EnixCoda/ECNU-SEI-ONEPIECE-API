@@ -12,7 +12,9 @@ class LoginController extends Controller {
 
     public function main(Request $request) {
         do {
-            if ($request->has('id')
+            if (env('NO_VERIFICATION')) {
+                // do nothing
+            } else if ($request->has('id')
                 && $request->has('password')
             ) {
                 $stuId = $request->input('id');
@@ -102,10 +104,17 @@ class LoginController extends Controller {
                 break;
             }
 
-            $user = app('db')
+            if (env('NO_VERIFICATION')) {
+                $user = new \stdClass();
+                $user->username = 'guest';
+                $user->lastAlia = 'guest';
+                $user->token = 'useless_token';
+            } else {
+                $user = app('db')
                 ->table('user')
                 ->where('stuId', $stuId)
                 ->first();
+            }
 
             $this->response->setData([
                 'username' => $user->username,
@@ -114,7 +123,12 @@ class LoginController extends Controller {
 
             setcookie('token', $user->token, 2147483647);
             $this->response->success();
-            $this->response->cusMsg('欢迎！' . $user->lastAlia);
+
+            if (env('NO_VERIFICATION')) {
+                $this->response->cusMsg('因校园数据库接口不可用，登陆功能已暂停使用。');
+            } else {
+                $this->response->cusMsg('欢迎！' . $user->lastAlia);
+            }
         } while (false);
 
         return response()->json($this->response);

@@ -31,6 +31,19 @@ class AuthServiceProvider extends ServiceProvider
 
         $this->app['auth']
             ->viaRequest('api', function (Request $request) {
+                if (env('NO_VERIFICATION')) {
+                    $guest = new \stdClass();
+                    $guest->id = "0";
+                    $guest->stuId = "0";
+                    $guest->username = "guest";
+                    $guest->password = "guest";
+                    $guest->cademy = "";
+                    $guest->token = "useless_token";
+                    $guest->lastAlia = "guest";
+                    $guest->created_at = "";
+                    $guest->updated_at = "";
+                    return $guest;
+                }
                 if (isset($request->cookie()['token'])) {
                     return app('db')
                         ->table('user')
