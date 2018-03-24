@@ -4,6 +4,4 @@ vendor
 .DS_Store
 ONEPIECE.db
 ARCHIVES/
-public/assets/
-public/manifest.json
-public/service-worker.js
+public/assets
