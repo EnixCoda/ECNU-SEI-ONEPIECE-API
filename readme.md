@@ -1,15 +1,14 @@
-ECNU SEI Onepiece's API version 2!
+ECNU SEI Onepiece's API
 
-build with [Lumen](https://lumen.laravel.com)
+Built with [Lumen](https://lumen.laravel.com).
 
-easier, safer, faster!
-
-cool, cooler, coolest!
-
-init:
-
-0. copy .env.example to .env and edit .env
-0. create empty ONEPIECE.db at /database with sqlite3 manually
-0. install libraries: `> composer install`
-0. run database migrations: `> php artisan migrate`
-0. host under `/public`, ready to go
+Start up:
+```
+1. copy .env.example to .env and edit .env
+2. create empty ONEPIECE.db at /database with sqlite3 manually
+3. install libraries:
+  $ composer install
+4. run database migrations:
+  $ php artisan migrate
+5. host under the path `/public`, there you go!
+```
